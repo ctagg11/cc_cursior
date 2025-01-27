@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23605" systemVersion="24C101" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="ArtworkEntity" representedClassName="CanvasCodexCursior.ArtworkEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="completionDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="depth" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="dimensions" optional="YES" attributeType="String"/>
+        <attribute name="dimensionType" optional="YES" attributeType="String"/>
+        <attribute name="height" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageFileName" optional="YES" attributeType="String"/>
+        <attribute name="inspirationNotes" optional="YES" attributeType="String"/>
+        <attribute name="isPublic" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="medium" optional="YES" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="units" optional="YES" attributeType="String"/>
+        <attribute name="width" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="galleries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="GalleryEntity" inverseName="artworks" inverseEntity="GalleryEntity"/>
+        <relationship name="references" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ReferenceEntity" inverseName="artwork" inverseEntity="ReferenceEntity"/>
+    </entity>
+    <entity name="GalleryEntity" representedClassName="CanvasCodexCursior.GalleryEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="sortOrder" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="artworks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ArtworkEntity" inverseName="galleries" inverseEntity="ArtworkEntity"/>
+    </entity>
+    <entity name="ProjectEntity" representedClassName="CanvasCodexCursior.ProjectEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="inspiration" optional="YES" attributeType="String"/>
+        <attribute name="isCompleted" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="learningGoals" optional="YES" attributeType="String"/>
+        <attribute name="medium" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="priority" optional="YES" attributeType="String"/>
+        <attribute name="skills" optional="YES" attributeType="String"/>
+        <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeEstimate" optional="YES" attributeType="String"/>
+        <relationship name="references" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ReferenceEntity" inverseName="project" inverseEntity="ReferenceEntity"/>
+        <relationship name="updates" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ProjectUpdateEntity" inverseName="project" inverseEntity="ProjectUpdateEntity"/>
+    </entity>
+    <entity name="ProjectUpdateEntity" representedClassName="CanvasCodexCursior.ProjectUpdateEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="changes" optional="YES" attributeType="String"/>
+        <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageFileName" attributeType="String"/>
+        <attribute name="isPublic" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="title" attributeType="String"/>
+        <attribute name="todoNotes" optional="YES" attributeType="String"/>
+        <relationship name="project" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ProjectEntity" inverseName="updates" inverseEntity="ProjectEntity"/>
+    </entity>
+    <entity name="ReferenceEntity" representedClassName="CanvasCodexCursior.ReferenceEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="imageFileName" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="artwork" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ArtworkEntity" inverseName="references" inverseEntity="ArtworkEntity"/>
+        <relationship name="project" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ProjectEntity" inverseName="references" inverseEntity="ProjectEntity"/>
+    </entity>
+</model>
