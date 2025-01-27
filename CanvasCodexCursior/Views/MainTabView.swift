@@ -36,5 +36,6 @@ struct MainTabView: View {
                 .tag(5)
         }
         .tint(.indigo) // Use a artistic, creative accent color
+        .preferredColorScheme(.light) // Force light mode
     }
 } 

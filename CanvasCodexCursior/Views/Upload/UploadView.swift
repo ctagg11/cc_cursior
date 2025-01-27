@@ -4,11 +4,10 @@ import WeScan
 struct UploadView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingScanner = false
+    @State private var showingOptions = false
     @State private var uploadType: UploadType?
-    @State private var activeForm: UploadForm?
-    @State private var showingUploadOptions = false
-    @State private var showingNewArtworkForm = false
     @State private var identifiableImage: IdentifiableImage?
+    @State private var activeForm: UploadForm?
     @Binding var selectedTab: Int
     
     var body: some View {
@@ -16,7 +15,7 @@ struct UploadView: View {
             ScrollView {
                 VStack(spacing: 32) {
                     // Main upload button - 44pt minimum touch target
-                    Button(action: { showingUploadOptions = true }) {
+                    Button(action: { showingOptions = true }) {
                         VStack(spacing: 16) {
                             Image(systemName: "plus.viewfinder")
                                 .font(.system(size: 44))
@@ -58,9 +57,9 @@ struct UploadView: View {
                 .padding()
             }
             .navigationTitle("Upload")
-            .sheet(isPresented: $showingUploadOptions) {
+            .sheet(isPresented: $showingOptions) {
                 UploadOptionsSheet(
-                    isPresented: $showingUploadOptions,
+                    isPresented: $showingOptions,
                     uploadType: $uploadType,
                     showingScanner: $showingScanner
                 )
@@ -78,11 +77,8 @@ struct UploadView: View {
             .sheet(item: $activeForm) { form in
                 switch form {
                 case .workInProgress(let image):
-                    WorkInProgressForm(scannedImage: image) {
-                        activeForm = nil
-                        selectedTab = 2
-                    }
-                case .newArtwork:
+                    WorkInProgressForm(image: image)
+                case .newArtwork(let image):
                     EmptyView()
                 }
             }

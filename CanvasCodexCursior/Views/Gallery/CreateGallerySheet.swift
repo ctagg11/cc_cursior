@@ -1,49 +1,51 @@
 import SwiftUI
 
 struct CreateGallerySheet: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel = ArtworkViewModel()
     @State private var galleryName = ""
     @State private var showingError = false
     @State private var errorMessage = ""
     @FocusState private var isNameFieldFocused: Bool
     
-    var onGalleryCreated: ((String) -> Void)?
-    @StateObject private var viewModel = ArtworkViewModel()
+    var onComplete: ((GalleryEntity) -> Void)?
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Gallery Name", text: $galleryName)
+            ScrollView {
+                VStack(spacing: 24) {
+                    FormSection(
+                        title: "Gallery Details",
+                        description: "Create a gallery to organize your artwork into collections"
+                    ) {
+                        AppTextField(
+                            label: "Name",
+                            placeholder: "Enter gallery name",
+                            text: $galleryName,
+                            icon: "folder"
+                        )
                         .focused($isNameFieldFocused)
-                        .textInputAutocapitalization(.words)
-                } header: {
-                    Text("Gallery Details")
-                } footer: {
-                    Text("Create a gallery to organize your artwork into collections")
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, 8)
-                }
-                
-                if !viewModel.galleries.isEmpty {
-                    Section("Existing Galleries") {
-                        ForEach(viewModel.galleries) { gallery in
-                            HStack {
-                                Text(gallery.name ?? "")
-                                    .foregroundStyle(.secondary)
-                                
-                                Spacer()
-                                
-                                if let artworks = gallery.artworks?.allObjects as? [ArtworkEntity] {
-                                    Text("\(artworks.count) artwork\(artworks.count == 1 ? "" : "s")")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                    }
+                    
+                    if !viewModel.galleries.isEmpty {
+                        FormSection(title: "Existing Galleries") {
+                            VStack(spacing: 1) {
+                                ForEach(viewModel.galleries) { gallery in
+                                    ListRow(
+                                        title: gallery.name ?? "",
+                                        subtitle: "\(gallery.artworks?.count ?? 0) artworks",
+                                        icon: "photo.stack"
+                                    )
                                 }
                             }
+                            .cornerRadius(12)
                         }
                     }
                 }
+                .padding(.vertical, 24)
             }
+            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("New Gallery")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -51,22 +53,25 @@ struct CreateGallerySheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundStyle(.secondary)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         createGallery()
                     }
-                    .fontWeight(.semibold)
+                    .font(.body.bold())
+                    .foregroundStyle(.blue)
                     .disabled(galleryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .alert("Error", isPresented: $showingError) {
-                Button("OK") {}
+                Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
             }
         }
+        .preferredColorScheme(.light)
         .onAppear {
             viewModel.loadGalleries()
             isNameFieldFocused = true
@@ -74,11 +79,9 @@ struct CreateGallerySheet: View {
     }
     
     private func createGallery() {
-        let trimmedName = galleryName.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         do {
-            _ = try viewModel.createGallery(name: trimmedName)
-            onGalleryCreated?(trimmedName)
+            let gallery = try viewModel.createGallery(name: galleryName)
+            onComplete?(gallery)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

@@ -21,171 +21,170 @@ struct NewArtworkForm: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Image Preview Section
-                Section {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 300)
-                        .frame(maxWidth: .infinity)
-                }
-                
-                // Basic Info Section
-                Section("Artwork Details") {
-                    TextField("Title", text: $formData.name)
-                    
-                    Picker("Medium", selection: $formData.medium) {
-                        Text("Select Medium").tag("")
-                        ForEach(CommonMediums.allCases, id: \.self) { medium in
-                            Text(medium.rawValue).tag(medium.rawValue)
-                        }
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Image Preview Section
+                    FormSection(title: "Preview") {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 300)
+                            .frame(maxWidth: .infinity)
                     }
                     
-                    // Gallery Selection
-                    VStack(alignment: .leading) {
-                        if galleries.isEmpty {
-                            Button {
-                                showingGalleryCreation = true
-                            } label: {
-                                Label("Create First Gallery", systemImage: "folder.badge.plus")
-                            }
-                        } else {
-                            Picker("Gallery", selection: $formData.galleryId) {
-                                Text("Select Gallery").tag("")
-                                ForEach(galleries) { gallery in
-                                    Text(gallery.name ?? "").tag(gallery.id?.uuidString ?? "")
+                    // Basic Info Section
+                    FormSection(
+                        title: "Artwork Details",
+                        description: "Add basic information about your artwork"
+                    ) {
+                        VStack(spacing: 16) {
+                            AppTextField(
+                                label: "Title",
+                                placeholder: "Enter artwork title",
+                                text: $formData.name,
+                                icon: "paintbrush"
+                            )
+                            
+                            // Medium Picker
+                            VStack(alignment: .leading, spacing: 8) {
+                                AppText(text: "Medium", style: .caption)
+                                
+                                Picker("Medium", selection: $formData.medium) {
+                                    Text("Select Medium").tag("")
+                                    ForEach(CommonMediums.allCases, id: \.self) { medium in
+                                        Text(medium.rawValue).tag(medium.rawValue)
+                                    }
                                 }
+                                .pickerStyle(.menu)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.gray.opacity(0.05))
+                                .cornerRadius(8)
                             }
                             
-                            Button {
-                                showingGalleryCreation = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill")
-                                    Text("Create New Gallery")
+                            // Gallery Selection
+                            VStack(alignment: .leading, spacing: 8) {
+                                AppText(text: "Gallery", style: .caption)
+                                
+                                if galleries.isEmpty {
+                                    AppButton(
+                                        title: "Create First Gallery",
+                                        style: .primary,
+                                        action: { showingGalleryCreation = true }
+                                    )
+                                } else {
+                                    VStack(spacing: 12) {
+                                        Picker("Gallery", selection: $formData.galleryId) {
+                                            Text("Select Gallery").tag("")
+                                            ForEach(galleries) { gallery in
+                                                Text(gallery.name ?? "").tag(gallery.id?.uuidString ?? "")
+                                            }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color.gray.opacity(0.05))
+                                        .cornerRadius(8)
+                                        
+                                        AppButton(
+                                            title: "Create New Gallery",
+                                            style: .secondary,
+                                            action: { showingGalleryCreation = true }
+                                        )
+                                    }
                                 }
-                                .font(.subheadline)
-                                .foregroundStyle(.blue)
                             }
-                            .padding(.top, 4)
                         }
                     }
-                }
-                
-                // Dimensions Section
-                Section {
-                    DisclosureGroup(
-                        isExpanded: $showingDimensionPicker,
-                        content: {
-                            VStack(spacing: 16) {
-                                // Dimension Type Toggle
-                                Picker("Dimension Type", selection: $formData.dimensionType) {
-                                    Text("2D").tag(DimensionType.twoDimensional)
-                                    Text("3D").tag(DimensionType.threeDimensional)
+                    
+                    // Dimensions Section
+                    FormSection(
+                        title: "Dimensions",
+                        description: "Specify the size of your artwork"
+                    ) {
+                        VStack(spacing: 16) {
+                            // Dimension Type Toggle
+                            Picker("Dimension Type", selection: $formData.dimensionType) {
+                                Text("2D").tag(DimensionType.twoDimensional)
+                                Text("3D").tag(DimensionType.threeDimensional)
+                            }
+                            .pickerStyle(.segmented)
+                            
+                            // Dimension Fields
+                            if formData.dimensionType == .twoDimensional {
+                                HStack {
+                                    DimensionField(value: $formData.width, unit: $formData.units, label: "Width")
+                                    Text("×")
+                                        .foregroundStyle(.secondary)
+                                    DimensionField(value: $formData.height, unit: $formData.units, label: "Height")
                                 }
-                                .pickerStyle(.segmented)
-                                .padding(.vertical, 8)
-                                
-                                // Dimension Fields
-                                if formData.dimensionType == .twoDimensional {
+                            } else {
+                                VStack(spacing: 12) {
                                     HStack {
                                         DimensionField(value: $formData.width, unit: $formData.units, label: "Width")
                                         Text("×")
                                             .foregroundStyle(.secondary)
                                         DimensionField(value: $formData.height, unit: $formData.units, label: "Height")
                                     }
-                                } else {
-                                    VStack(spacing: 12) {
-                                        HStack {
-                                            DimensionField(value: $formData.width, unit: $formData.units, label: "Width")
-                                            Text("×")
-                                                .foregroundStyle(.secondary)
-                                            DimensionField(value: $formData.height, unit: $formData.units, label: "Height")
-                                        }
-                                        HStack {
-                                            Text("×")
-                                                .foregroundStyle(.secondary)
-                                            DimensionField(value: $formData.depth, unit: $formData.units, label: "Depth")
-                                        }
+                                    HStack {
+                                        Text("×")
+                                            .foregroundStyle(.secondary)
+                                        DimensionField(value: $formData.depth, unit: $formData.units, label: "Depth")
                                     }
                                 }
-                                
-                                // Units Picker
-                                Picker("Units", selection: $formData.units) {
-                                    ForEach(DimensionUnit.allCases, id: \.self) { unit in
-                                        Text(unit.rawValue).tag(unit)
-                                    }
-                                }
-                                .pickerStyle(.segmented)
                             }
-                        },
-                        label: {
-                            HStack {
-                                Text("Dimensions")
-                                Spacer()
-                                if formData.hasDimensions {
-                                    Text(formData.dimensionsDisplay)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text("Optional")
-                                        .foregroundStyle(.secondary)
+                            
+                            // Units Picker
+                            Picker("Units", selection: $formData.units) {
+                                ForEach(DimensionUnit.allCases, id: \.self) { unit in
+                                    Text(unit.rawValue).tag(unit)
                                 }
                             }
+                            .pickerStyle(.segmented)
                         }
-                    )
-                }
-                
-                // Dates Section
-                Section {
-                    DisclosureGroup(
-                        isExpanded: $showingDatePicker,
-                        content: {
+                    }
+                    
+                    // Dates Section
+                    FormSection(
+                        title: "Dates",
+                        description: "When did you start and complete this artwork?"
+                    ) {
+                        VStack(spacing: 16) {
                             DatePicker("Start Date", selection: $formData.startDate, displayedComponents: .date)
                             DatePicker("Completion Date", selection: $formData.completionDate, displayedComponents: .date)
-                        },
-                        label: {
-                            HStack {
-                                Text("Dates")
-                                Spacer()
-                                if formData.hasDateRange {
-                                    Text(formData.dateRangeDisplay)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Text("Optional")
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
                         }
-                    )
+                    }
                 }
+                .padding(.vertical, 24)
             }
+            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("New Artwork")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        print("Cancel pressed")
                         dismiss()
                     }
+                    .foregroundStyle(.secondary)
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        print("Save button pressed")
                         saveArtwork()
                     }
+                    .font(.body.bold())
+                    .foregroundStyle(.blue)
                     .disabled(!formData.isValid)
                 }
             }
             .sheet(isPresented: $showingGalleryCreation) {
-                CreateGallerySheet { _ in
-                    if formData.galleryId.isEmpty, let lastGallery = galleries.last {
-                        formData.galleryId = lastGallery.id?.uuidString ?? ""
-                    }
+                CreateGallerySheet { newGallery in
+                    formData.galleryId = newGallery.id?.uuidString ?? ""
+                    viewModel.loadGalleries()
                 }
             }
         }
+        .preferredColorScheme(.light)
     }
     
     private func saveArtwork() {
@@ -209,24 +208,30 @@ struct NewArtworkForm: View {
     }
 }
 
-// Helper Views
+// Update DimensionField to match our style
 struct DimensionField: View {
     @Binding var value: Double
     @Binding var unit: DimensionUnit
     let label: String
     
     var body: some View {
-        TextField(label, value: $value, format: .number.precision(.fractionLength(2)))
-            .keyboardType(.decimalPad)
-            .textFieldStyle(.roundedBorder)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 80)
-            // Add validation to prevent NaN
-            .onChange(of: value) { newValue in
-                if newValue.isNaN {
-                    value = 0
+        VStack(alignment: .leading, spacing: 8) {
+            AppText(text: label, style: .caption)
+            
+            TextField(label, value: $value, format: .number.precision(.fractionLength(2)))
+                .keyboardType(.decimalPad)
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.center)
+                .padding()
+                .frame(maxWidth: 80)
+                .background(Color.gray.opacity(0.05))
+                .cornerRadius(8)
+                .onChange(of: value) { newValue in
+                    if newValue.isNaN {
+                        value = 0
+                    }
                 }
-            }
+        }
     }
 }
 
