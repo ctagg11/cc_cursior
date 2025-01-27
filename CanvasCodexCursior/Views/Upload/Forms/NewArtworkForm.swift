@@ -179,14 +179,11 @@ struct NewArtworkForm: View {
                 }
             }
             .sheet(isPresented: $showingGalleryCreation) {
-                CreateGallerySheet()
-                    .onDisappear {
-                        // If a gallery was just created and no gallery is selected,
-                        // select the most recently created gallery
-                        if formData.galleryId.isEmpty, let lastGallery = galleries.last {
-                            formData.galleryId = lastGallery.id?.uuidString ?? ""
-                        }
+                CreateGallerySheet { _ in
+                    if formData.galleryId.isEmpty, let lastGallery = galleries.last {
+                        formData.galleryId = lastGallery.id?.uuidString ?? ""
                     }
+                }
             }
         }
     }

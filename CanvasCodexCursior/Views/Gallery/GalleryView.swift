@@ -12,6 +12,7 @@ struct GalleryView: View {
     
     @State private var isEditingOrder = false
     @StateObject private var viewModel = ArtworkViewModel()
+    @State private var showingGalleryCreation = false
     
     var body: some View {
         NavigationStack {
@@ -36,11 +37,14 @@ struct GalleryView: View {
                 
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        // Show create gallery sheet
+                        showingGalleryCreation = true
                     } label: {
                         Image(systemName: "folder.badge.plus")
                     }
                 }
+            }
+            .sheet(isPresented: $showingGalleryCreation) {
+                CreateGallerySheet()
             }
         }
         .onAppear {
