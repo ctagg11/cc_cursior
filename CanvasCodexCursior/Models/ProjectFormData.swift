@@ -2,15 +2,14 @@ import Foundation
 import UIKit
 
 struct ProjectFormData {
-    var name = ""
-    var medium = ""
-    var startDate = Date()
-    var inspiration = ""
+    var name: String = ""
+    var medium: String = ""
+    var startDate: Date = Date()
+    var inspiration: String = ""
+    var skills: String = ""
+    var timeEstimate: TimeEstimate = .singleSession
+    var priority: ProjectPriority = .medium
     var references: [ReferenceImage] = []
-    var learningGoals = ""
-    var skills = ""
-    var timeEstimate = TimeEstimate.singleSession
-    var priority = ProjectPriority.medium
 }
 
 struct ReferenceImage: Identifiable {
@@ -19,18 +18,14 @@ struct ReferenceImage: Identifiable {
 }
 
 enum TimeEstimate: String, CaseIterable {
-    case quickSketch
-    case singleSession
-    case multiDay
-    case extended
+    case quickSketch = "Quick Sketch"
+    case singleSession = "Single Session"
+    case lessThanWeek = "Less Than a Week"
+    case oneToTwoWeeks = "1-2 Weeks"
+    case moreThanTwoWeeks = "More Than 2 Weeks"
     
     var description: String {
-        switch self {
-        case .quickSketch: return "Quick Sketch (1-2 hours)"
-        case .singleSession: return "Single Session (2-4 hours)"
-        case .multiDay: return "Multi-Day Project"
-        case .extended: return "Extended Project"
-        }
+        return rawValue
     }
 }
 

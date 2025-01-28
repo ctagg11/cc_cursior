@@ -13,6 +13,8 @@ struct GalleryView: View {
     @State private var isEditingOrder = false
     @StateObject private var viewModel = ArtworkViewModel()
     @State private var showingGalleryCreation = false
+    @State private var showingDeleteAlert = false
+    @State private var artworkToDelete: ArtworkEntity?
     
     var body: some View {
         NavigationStack {

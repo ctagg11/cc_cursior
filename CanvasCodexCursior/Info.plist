@@ -6,5 +6,26 @@
 NSCameraUsageDescription
 NSCameraUsageDescription</key>
 	<string>e need camera access to scan your artwork</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>&lt;key&gt;CFBundleURLTypes&lt;/key&gt;
+&lt;array&gt;
+    &lt;dict&gt;
+        &lt;key&gt;CFBundleURLSchemes&lt;/key&gt;
+        &lt;array&gt;
+            &lt;string&gt;com.googleusercontent.apps.417172231889&lt;/string&gt;
+        &lt;/array&gt;
+    &lt;/dict&gt;
+&lt;/array&gt;</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -7,6 +7,7 @@ class ArtworkViewModel: ObservableObject {
     
     @Published private(set) var galleries: [GalleryEntity] = []
     @Published var projects: [ProjectEntity] = []
+    @Published var artworks: [ArtworkEntity] = []
     
     func saveNewArtwork(formData: ArtworkFormData, image: UIImage, gallery: String?) throws {
         // Save image first
@@ -76,6 +77,7 @@ class ArtworkViewModel: ObservableObject {
         update.date = Date()
         
         project.addToUpdates(update)
+        project.lastActivityDate = update.date
         
         try viewContext.save()
     }
@@ -158,14 +160,14 @@ class ArtworkViewModel: ObservableObject {
         }
     }
     
-    func createProject(_ data: ProjectFormData) throws {
-        let project = ProjectEntity(context: viewContext)
+    func createProject(_ data: ProjectFormData, context: NSManagedObjectContext) throws {
+        let project = ProjectEntity(context: context)
         project.id = UUID()
         project.name = data.name
         project.medium = data.medium
         project.startDate = data.startDate
+        project.lastActivityDate = data.startDate
         project.inspiration = data.inspiration
-        project.learningGoals = data.learningGoals
         project.skills = data.skills
         project.timeEstimate = data.timeEstimate.rawValue
         project.priority = data.priority.rawValue
@@ -177,13 +179,14 @@ class ArtworkViewModel: ObservableObject {
                 continue
             }
             
-            let referenceEntity = ReferenceEntity(context: viewContext)
+            let referenceEntity = ReferenceEntity(context: context)
             referenceEntity.id = UUID()
             referenceEntity.imageFileName = fileName
             project.addToReferences(referenceEntity)
         }
         
-        try viewContext.save()
+        try context.save()
+        loadProjects() // Add this line to refresh the projects list
     }
     
     func updateProject(_ project: ProjectEntity, with data: ProjectFormData) throws {
@@ -191,7 +194,6 @@ class ArtworkViewModel: ObservableObject {
         project.medium = data.medium
         project.startDate = data.startDate
         project.inspiration = data.inspiration
-        project.learningGoals = data.learningGoals
         project.skills = data.skills
         project.timeEstimate = data.timeEstimate.rawValue
         project.priority = data.priority.rawValue
@@ -248,6 +250,49 @@ class ArtworkViewModel: ObservableObject {
         
         // Refresh galleries
         loadGalleries()
+    }
+    
+    func addUpdate(to project: ProjectEntity, update: ProjectUpdateEntity) {
+        project.addToUpdates(update)
+        project.lastActivityDate = update.date
+        try? viewContext.save()
+    }
+    
+    func deleteArtwork(_ artwork: ArtworkEntity) {
+        // Ensure we're on the main thread
+        DispatchQueue.main.async {
+            // Verify the artwork still exists in our array
+            guard self.artworks.contains(artwork) else { return }
+            
+            // Remove from the array first
+            if let index = self.artworks.firstIndex(of: artwork) {
+                self.artworks.remove(at: index)
+            }
+            
+            // Then delete from Core Data
+            self.viewContext.delete(artwork)
+            
+            // Save context
+            do {
+                try self.viewContext.save()
+            } catch {
+                print("Error deleting artwork: \(error)")
+                // Optionally reload data to ensure consistency
+                self.fetchArtworks()
+            }
+        }
+    }
+    
+    func fetchArtworks() {
+        let request = NSFetchRequest<ArtworkEntity>(entityName: "ArtworkEntity")
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ArtworkEntity.createdAt, ascending: false)]
+        
+        do {
+            artworks = try viewContext.fetch(request)
+        } catch {
+            print("Error fetching artworks: \(error)")
+            artworks = []
+        }
     }
 }
 

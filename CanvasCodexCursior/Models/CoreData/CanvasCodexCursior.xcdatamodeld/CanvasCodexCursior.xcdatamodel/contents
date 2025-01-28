@@ -29,7 +29,7 @@
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="inspiration" optional="YES" attributeType="String"/>
         <attribute name="isCompleted" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="learningGoals" optional="YES" attributeType="String"/>
+        <attribute name="lastActivityDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="medium" optional="YES" attributeType="String"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="priority" optional="YES" attributeType="String"/>
@@ -47,7 +47,7 @@
         <attribute name="isPublic" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="title" attributeType="String"/>
         <attribute name="todoNotes" optional="YES" attributeType="String"/>
-        <relationship name="project" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ProjectEntity" inverseName="updates" inverseEntity="ProjectEntity"/>
+        <relationship name="project" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ProjectEntity" inverseName="updates" inverseEntity="ProjectEntity"/>
     </entity>
     <entity name="ReferenceEntity" representedClassName="CanvasCodexCursior.ReferenceEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>

@@ -2,19 +2,19 @@ import SwiftUI
 
 struct EditProjectSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel = ArtworkViewModel()
     let project: ProjectEntity
     
-    @State private var projectData: ProjectFormData
+    @State private var formData: ProjectFormData
     
     init(project: ProjectEntity) {
         self.project = project
-        _projectData = State(initialValue: ProjectFormData(
+        _formData = State(initialValue: ProjectFormData(
             name: project.name ?? "",
             medium: project.medium ?? "",
             startDate: project.startDate ?? Date(),
             inspiration: project.inspiration ?? "",
-            learningGoals: project.learningGoals ?? "",
             skills: project.skills ?? "",
             timeEstimate: TimeEstimate(rawValue: project.timeEstimate ?? "") ?? .singleSession,
             priority: ProjectPriority(rawValue: project.priority ?? "") ?? .medium
@@ -25,42 +25,50 @@ struct EditProjectSheet: View {
         NavigationStack {
             Form {
                 Section("Project Details") {
-                    TextField("Project Name", text: $projectData.name)
+                    TextField("Project Name", text: $formData.name)
+                        .textInputAutocapitalization(.words)
                     
-                    Picker("Medium", selection: $projectData.medium) {
+                    Picker("Medium", selection: $formData.medium) {
                         Text("Select Medium").tag("")
                         ForEach(CommonMediums.allCases, id: \.self) { medium in
                             Text(medium.rawValue).tag(medium.rawValue)
                         }
                     }
                     
-                    DatePicker("Start Date", selection: $projectData.startDate, displayedComponents: .date)
+                    DatePicker("Start Date", selection: $formData.startDate, displayedComponents: .date)
                 }
                 
-                Section("Learning Goals") {
-                    TextEditor(text: $projectData.learningGoals)
+                Section("Notes & Planning") {
+                    TextEditor(text: $formData.inspiration)
                         .frame(minHeight: 100)
+                        .overlay(
+                            Group {
+                                if formData.inspiration.isEmpty {
+                                    Text("Add notes about your inspiration...")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.leading, 4)
+                                        .padding(.top, 8)
+                                        .allowsHitTesting(false)
+                                }
+                            },
+                            alignment: .topLeading
+                        )
                     
-                    TextField("Key Skills (comma-separated)", text: $projectData.skills)
+                    TextField("Skills (comma-separated)", text: $formData.skills)
                 }
                 
                 Section("Project Planning") {
-                    Picker("Estimated Time", selection: $projectData.timeEstimate) {
+                    Picker("Estimated Time", selection: $formData.timeEstimate) {
                         ForEach(TimeEstimate.allCases, id: \.self) { estimate in
                             Text(estimate.description).tag(estimate)
                         }
                     }
                     
-                    Picker("Priority", selection: $projectData.priority) {
+                    Picker("Priority", selection: $formData.priority) {
                         ForEach(ProjectPriority.allCases, id: \.self) { priority in
                             Text(priority.description).tag(priority)
                         }
                     }
-                }
-                
-                Section("Inspiration") {
-                    TextEditor(text: $projectData.inspiration)
-                        .frame(minHeight: 100)
                 }
             }
             .navigationTitle("Edit Project")
@@ -74,20 +82,21 @@ struct EditProjectSheet: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        saveProject()
+                        save()
                     }
-                    .disabled(projectData.name.isEmpty)
+                    .disabled(formData.name.isEmpty)
                 }
             }
         }
     }
     
-    private func saveProject() {
+    private func save() {
         do {
-            try viewModel.updateProject(project, with: projectData)
+            try viewModel.updateProject(project, with: formData)
             dismiss()
         } catch {
             // Handle error
+            print("Error updating project: \(error)")
         }
     }
 } 

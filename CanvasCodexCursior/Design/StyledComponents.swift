@@ -71,23 +71,28 @@ struct AppTextField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
-    var icon: String? = nil
+    let icon: String
+    var isSecureField: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
+        VStack(alignment: .leading, spacing: 8) {
             AppText(text: label, style: .caption)
             
             HStack {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .foregroundStyle(AppTheme.Colors.textSecondary)
-                }
+                Image(systemName: icon)
+                    .foregroundStyle(.secondary)
                 
-                TextField(placeholder, text: $text)
-                    .textFieldStyle(.plain)
-                    .font(.body)
+                if isSecureField {
+                    SecureField(placeholder, text: $text)
+                        .textFieldStyle(.plain)
+                } else {
+                    TextField(placeholder, text: $text)
+                        .textFieldStyle(.plain)
+                }
             }
-            .inputStyle()
+            .padding()
+            .background(Color.gray.opacity(0.05))
+            .cornerRadius(8)
         }
     }
 }

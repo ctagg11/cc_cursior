@@ -1,0 +1,9 @@
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>com.googleusercontent.apps.YOUR-CLIENT-ID</string>
+        </array>
+    </dict>
+</array> 

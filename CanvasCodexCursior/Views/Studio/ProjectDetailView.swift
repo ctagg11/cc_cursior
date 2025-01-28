@@ -8,10 +8,17 @@ struct ProjectDetailView: View {
     @State private var showingEditProject = false
     @State private var showingReferenceScanner = false
     
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+    
     var body: some View {
         VStack(spacing: 0) {
             // Tab Picker
-            Picker("View", selection: $selectedTab) {
+            Picker("Section", selection: $selectedTab) {
                 Text("Progress").tag(0)
                 Text("References").tag(1)
                 Text("Notes").tag(2)
@@ -19,16 +26,24 @@ struct ProjectDetailView: View {
             .pickerStyle(.segmented)
             .padding()
             
-            // Swipeable Content
             TabView(selection: $selectedTab) {
-                ProgressUpdatesView(project: project, showingNewUpdate: $showingNewUpdate)
-                    .tag(0)
+                // Progress Tab
+                ProgressUpdatesView(
+                    project: project,
+                    showingNewUpdate: $showingNewUpdate
+                )
+                .tag(0)
                 
-                ReferencesView(project: project, showingScanner: $showingReferenceScanner)
-                    .tag(1)
+                // References Tab
+                ReferencesView(
+                    project: project,
+                    showingScanner: $showingReferenceScanner
+                )
+                .tag(1)
                 
-                ProjectNotesView(project: project)
-                    .tag(2)
+                // Notes Tab
+                NotesView(project: project)
+                .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }
@@ -44,123 +59,81 @@ struct ProjectDetailView: View {
                     }
                     
                     Button(role: .destructive) {
-                        // Handle delete
+                        // Add delete functionality
                     } label: {
                         Label("Delete Project", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
-                        .frame(width: 44, height: 44)
                 }
             }
-        }
-        .sheet(isPresented: $showingNewUpdate) {
-            NewUpdateSheet(project: project)
         }
         .sheet(isPresented: $showingEditProject) {
             EditProjectSheet(project: project)
         }
-        .sheet(isPresented: $showingReferenceScanner) {
-            ImagePicker(image: { image in
-                if let image = image {
-                    try? viewModel.addReference(to: project, image: image)
-                }
-                showingReferenceScanner = false
-            })
-        }
     }
 }
 
+// MARK: - Supporting Views
 struct ProgressUpdatesView: View {
     let project: ProjectEntity
     @Binding var showingNewUpdate: Bool
+    @StateObject private var viewModel = ArtworkViewModel()
     @State private var selectedUpdate: ProjectUpdateEntity?
     
     var sortedUpdates: [ProjectUpdateEntity] {
         guard let updates = project.updates?.allObjects as? [ProjectUpdateEntity] else {
             return []
         }
-        return updates.sorted {
-            guard let date1 = $0.date, let date2 = $1.date else { return false }
-            return date1 > date2
-        }
+        return updates.sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
     }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Current Update View
-                if let update = selectedUpdate ?? sortedUpdates.first {
-                    VStack(alignment: .leading) {
-                        HStack {
-                            Text(update == sortedUpdates.first ? "Current State" : update.title ?? "")
-                                .font(.headline)
-                            
-                            Spacer()
-                            
-                            if update == sortedUpdates.first {
-                                Button {
-                                    showingNewUpdate = true
-                                } label: {
-                                    Label("Update", systemImage: "camera")
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        UpdateDetailView(update: update)
-                    }
-                }
-                
-                // Timeline
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Development Timeline")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(sortedUpdates) { update in
-                                Button {
-                                    withAnimation {
-                                        selectedUpdate = update
-                                    }
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        if let fileName = update.imageFileName,
-                                           let image = ImageManager.shared.loadImage(fileName: fileName, category: .projectUpdate) {
-                                            Image(uiImage: image)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 80, height: 80)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        }
-                                        
-                                        Text("Stage \(sortedUpdates.count - (sortedUpdates.firstIndex(of: update) ?? 0))")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .opacity(selectedUpdate == update ? 1 : 0.6)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                
-                // Quick Actions - now just the complete button
+                // Add Update Button
                 Button {
-                    // Mark as complete
+                    showingNewUpdate = true
                 } label: {
-                    Text("Mark as Complete")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.blue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    Label("New Update", systemImage: "plus.circle.fill")
+                        .font(.headline)
                 }
                 .padding()
+                
+                if sortedUpdates.isEmpty {
+                    ContentUnavailableView(
+                        "No Updates",
+                        systemImage: "camera",
+                        description: Text("Add your first progress update")
+                    )
+                } else {
+                    // Current Update View
+                    if let update = selectedUpdate ?? sortedUpdates.first {
+                        UpdateDetailView(update: update)
+                            .transition(.opacity)
+                    }
+                    
+                    // Development Timeline
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Development Timeline")
+                            .font(.headline)
+                        
+                        TimelineView(
+                            updates: sortedUpdates,
+                            selectedUpdate: $selectedUpdate
+                        )
+                    }
+                }
+            }
+            .padding()
+        }
+        .sheet(isPresented: $showingNewUpdate) {
+            NewUpdateSheet(project: project)
+        }
+        .onChange(of: sortedUpdates) { newUpdates in
+            // Reset selection to latest when new updates are added
+            if !newUpdates.isEmpty {
+                selectedUpdate = newUpdates.first
             }
         }
     }
@@ -170,63 +143,74 @@ struct ReferencesView: View {
     let project: ProjectEntity
     @Binding var showingScanner: Bool
     
+    var references: [ReferenceEntity] {
+        project.references?.allObjects as? [ReferenceEntity] ?? []
+    }
+    
     var body: some View {
         ScrollView {
-            if let references = project.references?.allObjects as? [ReferenceEntity] {
+            VStack(spacing: 20) {
+                Button {
+                    showingScanner = true
+                } label: {
+                    Label("Add Reference", systemImage: "plus.circle.fill")
+                        .font(.headline)
+                }
+                .padding()
+                
                 if references.isEmpty {
                     ContentUnavailableView(
                         "No References",
                         systemImage: "photo",
-                        description: Text("Add reference photos for your project")
+                        description: Text("Add reference images to help guide your project")
                     )
-                    .padding(.top, 40)
                 } else {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 16) {
-                        ForEach(references, id: \.id) { reference in
-                            ReferenceCard(reference: reference)
+                        ForEach(references) { reference in
+                            ReferenceImageView(reference: reference)
                         }
                     }
-                    .padding()
                 }
             }
+            .padding()
         }
     }
 }
 
-struct ProjectNotesView: View {
+struct NotesView: View {
     let project: ProjectEntity
     
     var body: some View {
-        List {
-            if let learningGoals = project.learningGoals, !learningGoals.isEmpty {
-                Section("Learning Goals") {
-                    Text(learningGoals)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Project Info
+                Group {
+                    if let medium = project.medium, !medium.isEmpty {
+                        DetailRow(label: "Medium", value: medium)
+                    }
+                    
+                    if let skills = project.skills, !skills.isEmpty {
+                        DetailRow(label: "Skills", value: skills)
+                    }
+                    
+                    if let timeEstimate = project.timeEstimate {
+                        DetailRow(label: "Time Estimate", value: timeEstimate)
+                    }
+                    
+                    if let priority = project.priority {
+                        DetailRow(label: "Priority", value: priority)
+                    }
+                }
+                
+                if let inspiration = project.inspiration, !inspiration.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Inspiration")
+                            .font(.headline)
+                        Text(inspiration)
+                    }
                 }
             }
-            
-            if let skills = project.skills, !skills.isEmpty {
-                Section("Key Skills") {
-                    Text(skills)
-                }
-            }
-            
-            if let inspiration = project.inspiration, !inspiration.isEmpty {
-                Section("Inspiration") {
-                    Text(inspiration)
-                }
-            }
-            
-            if let timeEstimate = project.timeEstimate {
-                Section("Time Estimate") {
-                    Text(timeEstimate)
-                }
-            }
-            
-            if let priority = project.priority {
-                Section("Priority") {
-                    Text(priority)
-                }
-            }
+            .padding()
         }
     }
 }
@@ -267,5 +251,42 @@ struct ImagePicker: UIViewControllerRepresentable {
             parent.image(nil)
             picker.dismiss(animated: true)
         }
+    }
+}
+
+// Add this helper view for updates
+struct UpdateCard: View {
+    let update: ProjectUpdateEntity
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let fileName = update.imageFileName,
+               let image = ImageManager.shared.loadImage(fileName: fileName, category: .projectUpdate) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text(update.title ?? "Update")
+                    .font(.headline)
+                
+                if let date = update.date {
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                if let changes = update.changes, !changes.isEmpty {
+                    Text(changes)
+                        .font(.body)
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 } 

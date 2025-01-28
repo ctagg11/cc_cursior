@@ -2,9 +2,12 @@ import SwiftUI
 
 struct CreateProjectSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel = ArtworkViewModel()
     @State private var projectData = ProjectFormData()
     @State private var showingImagePicker = false
+    @State private var showingPaintSelector = false
+    @State private var selectedColors: [PaintColor] = []
     
     var body: some View {
         NavigationStack {
@@ -28,6 +31,18 @@ struct CreateProjectSheet: View {
                 Section("References & Inspiration") {
                     TextEditor(text: $projectData.inspiration)
                         .frame(minHeight: 100)
+                        .overlay(
+                            Group {
+                                if projectData.inspiration.isEmpty {
+                                    Text("Add notes about your inspiration, reference images, or ideas...")
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 4)
+                                        .padding(.top, 8)
+                                        .allowsHitTesting(false)
+                                }
+                            },
+                            alignment: .topLeading
+                        )
                     
                     // References Grid
                     if !projectData.references.isEmpty {
@@ -49,14 +64,6 @@ struct CreateProjectSheet: View {
                     }
                 }
                 
-                // Learning Goals Section
-                Section("Learning Goals") {
-                    TextEditor(text: $projectData.learningGoals)
-                        .frame(minHeight: 100)
-                    
-                    TextField("Key Skills (comma-separated)", text: $projectData.skills)
-                }
-                
                 // Project Planning Section
                 Section("Project Planning") {
                     Picker("Estimated Time", selection: $projectData.timeEstimate) {
@@ -68,6 +75,30 @@ struct CreateProjectSheet: View {
                     Picker("Priority", selection: $projectData.priority) {
                         ForEach(ProjectPriority.allCases, id: \.self) { priority in
                             Text(priority.description).tag(priority)
+                        }
+                    }
+                }
+                
+                // Color Palette Section
+                Section("Color Palette") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        AppText(text: "Selected Colors", style: .caption)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(selectedColors) { color in
+                                    PaintColorChip(paint: color)
+                                }
+                                
+                                Button {
+                                    showingPaintSelector = true
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(AppTheme.Colors.primary)
+                                }
+                            }
+                            .padding(.horizontal, 4)
                         }
                     }
                 }
@@ -95,15 +126,102 @@ struct CreateProjectSheet: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingPaintSelector) {
+                PaintSelectorView(selectedColors: $selectedColors)
+            }
         }
     }
     
     private func save() {
         do {
-            try viewModel.createProject(projectData)
+            try viewModel.createProject(projectData, context: viewContext)
             dismiss()
         } catch {
             // Handle error
+        }
+    }
+}
+
+// Color chip view
+struct PaintColorChip: View {
+    let paint: PaintColor
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Circle()
+                .fill(paint.color)
+                .frame(width: 40, height: 40)
+                .shadow(radius: 2)
+            
+            Text(paint.name)
+                .font(.caption2)
+                .lineLimit(1)
+        }
+    }
+}
+
+// Paint selector view
+struct PaintSelectorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedColors: [PaintColor]
+    @State private var selectedBrand: PaintBrand = .winsorNewton
+    @State private var selectedType: PaintType = .oil
+    @State private var showingCustomColorPicker = false
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                Picker("Brand", selection: $selectedBrand) {
+                    ForEach(PaintBrand.allCases, id: \.self) { brand in
+                        Text(brand.rawValue).tag(brand)
+                    }
+                }
+                
+                if selectedBrand != .custom {
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(selectedBrand.types, id: \.self) { type in
+                            Text(type.rawValue.capitalized).tag(type)
+                        }
+                    }
+                    
+                    Section("Available Colors") {
+                        LazyVGrid(columns: [
+                            GridItem(.adaptive(minimum: 100))
+                        ], spacing: 16) {
+                            ForEach(PaintDatabase.shared.getColors(for: selectedBrand, type: selectedType)) { paint in
+                                Button {
+                                    if !selectedColors.contains(where: { $0.id == paint.id }) {
+                                        selectedColors.append(paint)
+                                    }
+                                } label: {
+                                    PaintColorChip(paint: paint)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                }
+                
+                Section {
+                    Button {
+                        showingCustomColorPicker = true
+                    } label: {
+                        Label("Add Custom Color", systemImage: "plus.circle")
+                    }
+                }
+            }
+            .navigationTitle("Select Colors")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .sheet(isPresented: $showingCustomColorPicker) {
+                CustomColorPicker(selectedColors: $selectedColors)
+            }
         }
     }
 } 

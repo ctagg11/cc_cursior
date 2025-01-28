@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		219338FE2D486101006BA3A6 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 219338FD2D486101006BA3A6 /* FirebaseAnalytics */; };
+		219339002D486101006BA3A6 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 219338FF2D486101006BA3A6 /* FirebaseAnalyticsOnDeviceConversion */; };
+		219339022D486101006BA3A6 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 219339012D486101006BA3A6 /* FirebaseAnalyticsWithoutAdIdSupport */; };
+		219339042D486101006BA3A6 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 219339032D486101006BA3A6 /* FirebaseAppCheck */; };
+		219339062D486102006BA3A6 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 219339052D486101006BA3A6 /* FirebaseAuth */; };
+		219339082D486102006BA3A6 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 219339072D486102006BA3A6 /* FirebaseFirestore */; };
+		2193390E2D48661E006BA3A6 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 2193390D2D48661E006BA3A6 /* GoogleSignIn */; };
+		219339102D48661E006BA3A6 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 2193390F2D48661E006BA3A6 /* GoogleSignInSwift */; };
 		219981F02D41ED2C000CE271 /* WeScan in Frameworks */ = {isa = PBXBuildFile; productRef = 219981EF2D41ED2C000CE271 /* WeScan */; };
 /* End PBXBuildFile section */
 
@@ -40,7 +48,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				219339102D48661E006BA3A6 /* GoogleSignInSwift in Frameworks */,
+				219338FE2D486101006BA3A6 /* FirebaseAnalytics in Frameworks */,
+				2193390E2D48661E006BA3A6 /* GoogleSignIn in Frameworks */,
+				219339062D486102006BA3A6 /* FirebaseAuth in Frameworks */,
+				219339002D486101006BA3A6 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
 				219981F02D41ED2C000CE271 /* WeScan in Frameworks */,
+				219339042D486101006BA3A6 /* FirebaseAppCheck in Frameworks */,
+				219339022D486101006BA3A6 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
+				219339082D486102006BA3A6 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +100,14 @@
 			name = CanvasCodexCursior;
 			packageProductDependencies = (
 				219981EF2D41ED2C000CE271 /* WeScan */,
+				219338FD2D486101006BA3A6 /* FirebaseAnalytics */,
+				219338FF2D486101006BA3A6 /* FirebaseAnalyticsOnDeviceConversion */,
+				219339012D486101006BA3A6 /* FirebaseAnalyticsWithoutAdIdSupport */,
+				219339032D486101006BA3A6 /* FirebaseAppCheck */,
+				219339052D486101006BA3A6 /* FirebaseAuth */,
+				219339072D486102006BA3A6 /* FirebaseFirestore */,
+				2193390D2D48661E006BA3A6 /* GoogleSignIn */,
+				2193390F2D48661E006BA3A6 /* GoogleSignInSwift */,
 			);
 			productName = CanvasCodexCursior;
 			productReference = 219981D02D41E3BA000CE271 /* CanvasCodexCursior.app */;
@@ -115,6 +139,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				219981EE2D41ED2C000CE271 /* XCRemoteSwiftPackageReference "WeScan" */,
+				219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				2193390C2D48661E006BA3A6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 219981D12D41E3BA000CE271 /* Products */;
@@ -271,6 +297,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CanvasCodexCursior/CanvasCodexCursior.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CanvasCodexCursior/Preview Content\"";
@@ -302,6 +329,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CanvasCodexCursior/CanvasCodexCursior.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"CanvasCodexCursior/Preview Content\"";
@@ -352,6 +380,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.7.0;
+			};
+		};
+		2193390C2D48661E006BA3A6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
 		219981EE2D41ED2C000CE271 /* XCRemoteSwiftPackageReference "WeScan" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/WeTransfer/WeScan.git";
@@ -363,6 +407,46 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		219338FD2D486101006BA3A6 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		219338FF2D486101006BA3A6 /* FirebaseAnalyticsOnDeviceConversion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsOnDeviceConversion;
+		};
+		219339012D486101006BA3A6 /* FirebaseAnalyticsWithoutAdIdSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsWithoutAdIdSupport;
+		};
+		219339032D486101006BA3A6 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		219339052D486101006BA3A6 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		219339072D486102006BA3A6 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 219338FC2D486101006BA3A6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		2193390D2D48661E006BA3A6 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2193390C2D48661E006BA3A6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		2193390F2D48661E006BA3A6 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2193390C2D48661E006BA3A6 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
 		219981EF2D41ED2C000CE271 /* WeScan */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 219981EE2D41ED2C000CE271 /* XCRemoteSwiftPackageReference "WeScan" */;
