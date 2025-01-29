@@ -11,6 +11,8 @@ import FirebaseCore
 @main
 struct CanvasCodexCursiorApp: App {
     @StateObject private var authService = AuthenticationService()
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
+    let persistenceController = PersistenceController.shared
     
     init() {
         FirebaseBootstrap.configure()
@@ -18,13 +20,18 @@ struct CanvasCodexCursiorApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if authService.isAuthenticated {
+            if !hasSeenOnboarding {
+                OnboardingView()
+                    .environmentObject(authService)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            } else if authService.isAuthenticated {
                 MainTabView()
                     .environmentObject(authService)
-                    .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
             } else {
                 LoginView()
                     .environmentObject(authService)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
             }
         }
     }
@@ -32,21 +39,3 @@ struct CanvasCodexCursiorApp: App {
 
 
 
-// if i want to skip auth each time:
-
-
-//var body: some Scene {
-//    WindowGroup {
-//        // For testing, force ContentView
-//        ContentView()
-//            .environmentObject(authService)
-//        // Normal authentication flow
-//        //if authService.isAuthenticated {
-//        //    ContentView()
-//        //        .environmentObject(authService)
-//        //} else {
-//        //    LoginView()
-//        //        .environmentObject(authService)
-//        //}
-//    }
-//}

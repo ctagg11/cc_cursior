@@ -214,7 +214,7 @@ class ArtworkViewModel: ObservableObject {
         try viewContext.save()
     }
     
-    func createArtwork(_ formData: ArtworkFormData, image: UIImage) throws {
+    func createArtwork(_ formData: ArtworkFormData, image: UIImage, referenceImage: UIImage?) throws {
         guard let fileName = ImageManager.shared.saveImage(image, category: .artwork) else {
             throw NSError(domain: "ImageSaveError", code: 1)
         }
@@ -243,6 +243,11 @@ class ArtworkViewModel: ObservableObject {
             if let galleryEntity = try? viewContext.fetch(fetchRequest).first {
                 artwork.addToGalleries(galleryEntity)
             }
+        }
+        
+        if let referenceImage = referenceImage,
+           let referenceData = referenceImage.jpegData(compressionQuality: 0.8) {
+            artwork.referenceImageData = referenceData
         }
         
         // Save context

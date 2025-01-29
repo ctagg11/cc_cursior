@@ -25,8 +25,12 @@ struct EditProjectSheet: View {
         NavigationStack {
             Form {
                 Section("Project Details") {
-                    TextField("Project Name", text: $formData.name)
-                        .textInputAutocapitalization(.words)
+                    AppTextField(
+                        label: "Project Name",
+                        placeholder: "Enter project name",
+                        icon: "paintpalette",
+                        text: $formData.name
+                    )
                     
                     Picker("Medium", selection: $formData.medium) {
                         Text("Select Medium").tag("")
@@ -39,20 +43,12 @@ struct EditProjectSheet: View {
                 }
                 
                 Section("Notes & Planning") {
-                    TextEditor(text: $formData.inspiration)
-                        .frame(minHeight: 100)
-                        .overlay(
-                            Group {
-                                if formData.inspiration.isEmpty {
-                                    Text("Add notes about your inspiration...")
-                                        .foregroundStyle(.secondary)
-                                        .padding(.leading, 4)
-                                        .padding(.top, 8)
-                                        .allowsHitTesting(false)
-                                }
-                            },
-                            alignment: .topLeading
-                        )
+                    AppTextField(
+                        label: "Inspiration",
+                        placeholder: "What inspired this project?",
+                        icon: "sparkles",
+                        text: $formData.inspiration
+                    )
                     
                     TextField("Skills (comma-separated)", text: $formData.skills)
                 }

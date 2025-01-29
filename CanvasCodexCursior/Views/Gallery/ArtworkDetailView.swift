@@ -7,6 +7,7 @@ struct ArtworkDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @State private var showingFullscreen = false
+    @State private var showingReferenceFullscreen = false
     
     var body: some View {
         ScrollView {
@@ -32,6 +33,14 @@ struct ArtworkDetailView: View {
                         }
                 }
                 
+                // Artwork Title
+                Text(artwork.name ?? "Untitled")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.leading)
+                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
                 // Artwork Information
                 VStack(spacing: 20) {
                     // Basic Info Section
@@ -45,6 +54,24 @@ struct ArtworkDetailView: View {
                         }
                         if let completionDate = artwork.completionDate {
                             InfoRow(label: "Completed", value: completionDate.formatted(date: .abbreviated, time: .omitted))
+                        }
+                    }
+                    
+                    // Reference Image Section
+                    if let referenceImageData = artwork.referenceImageData,
+                       let referenceImage = UIImage(data: referenceImageData) {
+                        InfoSection(title: "Reference Image") {
+                            Image(uiImage: referenceImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .onTapGesture {
+                                    showingReferenceFullscreen = true
+                                }
+                        }
+                        .fullScreenCover(isPresented: $showingReferenceFullscreen) {
+                            ZoomableImageView(image: referenceImage)
                         }
                     }
                     

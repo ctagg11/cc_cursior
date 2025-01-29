@@ -1,11 +1,15 @@
 import SwiftUI
 import FirebaseAuth
+import CoreData
 
 struct ProfileView: View {
     @EnvironmentObject private var authService: AuthenticationService
+    @Environment(\.managedObjectContext) private var viewContext
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var showingResetConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -74,6 +78,13 @@ struct ProfileView: View {
                         Image(systemName: "gear")
                     }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingResetConfirmation = true
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise.circle")
+                    }
+                }
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(showingSettings: $showingSettings)
@@ -83,7 +94,31 @@ struct ProfileView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("Reset App", isPresented: $showingResetConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Reset", role: .destructive) {
+                    resetApp()
+                }
+            } message: {
+                Text("This will reset the app to its initial state. You'll need to sign in again.")
+            }
         }
+    }
+    
+    private func resetApp() {
+        // Reset onboarding
+        hasSeenOnboarding = false
+        
+        // Sign out
+        try? Auth.auth().signOut()
+        
+        // Clear Core Data
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = GalleryEntity.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        try? viewContext.execute(deleteRequest)
+        
+        // Save context
+        try? viewContext.save()
     }
 }
 

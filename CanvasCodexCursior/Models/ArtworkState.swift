@@ -1,10 +1,11 @@
 import Foundation
 
-
 enum ArtworkStatus: Codable {
     case inProgress
     case completed
 }
+
+
 
 struct Artwork: Identifiable, Codable {
     let id: UUID

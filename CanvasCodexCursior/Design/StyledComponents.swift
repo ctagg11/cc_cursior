@@ -70,29 +70,33 @@ struct FormSection: View {
 struct AppTextField: View {
     let label: String
     let placeholder: String
-    @Binding var text: String
     let icon: String
     var isSecureField: Bool = false
+    @Binding var text: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AppText(text: label, style: .caption)
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             
             HStack {
                 Image(systemName: icon)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
+                    .frame(width: 24)
                 
                 if isSecureField {
                     SecureField(placeholder, text: $text)
-                        .textFieldStyle(.plain)
+                        .textContentType(.password)
+                        .foregroundColor(.primary)
                 } else {
                     TextField(placeholder, text: $text)
-                        .textFieldStyle(.plain)
+                        .foregroundColor(.primary)
                 }
             }
             .padding()
-            .background(Color.gray.opacity(0.05))
-            .cornerRadius(8)
+            .background(Color(.systemGray6))
+            .cornerRadius(10)
         }
     }
 }

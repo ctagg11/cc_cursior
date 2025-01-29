@@ -215,45 +215,6 @@ struct NotesView: View {
     }
 }
 
-// Add this helper view for picking images
-struct ImagePicker: UIViewControllerRepresentable {
-    let image: (UIImage?) -> Void
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.image(image)
-            } else {
-                parent.image(nil)
-            }
-            picker.dismiss(animated: true)
-        }
-        
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.image(nil)
-            picker.dismiss(animated: true)
-        }
-    }
-}
-
 // Add this helper view for updates
 struct UpdateCard: View {
     let update: ProjectUpdateEntity

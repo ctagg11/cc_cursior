@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct ArtworkFormData {
-    var name = ""
-    var medium = ""
-    var galleryId = ""
+    var name: String = ""
+    var medium: String = ""
+    var galleryId: String = ""
     var dimensionType: DimensionType = .twoDimensional
     var width: Double = 0
     var height: Double = 0
@@ -12,6 +12,7 @@ struct ArtworkFormData {
     var startDate: Date = Date()
     var completionDate: Date = Date()
     var isPublic: Bool = false
+    var referenceImageData: Data?
     
     var hasDimensions: Bool {
         width > 0 && height > 0 && (dimensionType == .twoDimensional || depth > 0)
@@ -21,15 +22,19 @@ struct ArtworkFormData {
         !Calendar.current.isDate(startDate, inSameDayAs: completionDate)
     }
     
-    var dimensionsDisplay: String {
-        let w = validateDimension(width)
-        let h = validateDimension(height)
-        let d = validateDimension(depth)
+    var dimensions: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        
+        let w = formatter.string(from: NSNumber(value: width)) ?? "0"
+        let h = formatter.string(from: NSNumber(value: height)) ?? "0"
         
         if dimensionType == .twoDimensional {
-            return String(format: "%.1f × %.1f %@", w, h, units.rawValue)
+            return "\(w) × \(h) \(units.rawValue)"
         } else {
-            return String(format: "%.1f × %.1f × %.1f %@", w, h, d, units.rawValue)
+            let d = formatter.string(from: NSNumber(value: depth)) ?? "0"
+            return "\(w) × \(h) × \(d) \(units.rawValue)"
         }
     }
     
@@ -46,7 +51,9 @@ struct ArtworkFormData {
     }
     
     var isValid: Bool {
-        !name.isEmpty && !galleryId.isEmpty
+        !name.isEmpty && 
+        !galleryId.isEmpty && 
+        startDate <= completionDate
     }
     
     private func validateDimension(_ value: Double) -> Double {

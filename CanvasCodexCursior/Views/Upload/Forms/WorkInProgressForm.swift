@@ -34,15 +34,15 @@ struct WorkInProgressForm: View {
                             AppTextField(
                                 label: "Project Name",
                                 placeholder: "Enter project name",
-                                text: $projectName,
-                                icon: "paintpalette"
+                                icon: "paintpalette",
+                                text: $projectName
                             )
                             
                             AppTextField(
                                 label: "Update Title",
                                 placeholder: "What did you accomplish?",
-                                text: $updateTitle,
-                                icon: "pencil"
+                                icon: "pencil",
+                                text: $updateTitle
                             )
                         }
                     }

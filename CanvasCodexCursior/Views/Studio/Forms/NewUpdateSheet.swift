@@ -16,7 +16,12 @@ struct NewUpdateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("Update Title", text: $title)
+                    AppTextField(
+                        label: "Update Title",
+                        placeholder: "What did you accomplish?",
+                        icon: "pencil",
+                        text: $title
+                    )
                     
                     TextEditor(text: $changes)
                         .frame(height: 100)

@@ -13,6 +13,7 @@
         <attribute name="isPublic" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="medium" optional="YES" attributeType="String"/>
         <attribute name="name" attributeType="String"/>
+        <attribute name="referenceImageData" optional="YES" attributeType="Binary"/>
         <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="units" optional="YES" attributeType="String"/>
         <attribute name="width" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>

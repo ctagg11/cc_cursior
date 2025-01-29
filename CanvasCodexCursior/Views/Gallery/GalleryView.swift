@@ -141,11 +141,11 @@ struct ArtworkThumbnail: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 200, maxHeight: 200)
+                    .frame(maxWidth: 250, maxHeight: 250)
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.2))
-                    .frame(width: 200, height: 200)
+                    .frame(width: 250, height: 250)
                     .overlay {
                         Image(systemName: "photo")
                             .foregroundStyle(.secondary)

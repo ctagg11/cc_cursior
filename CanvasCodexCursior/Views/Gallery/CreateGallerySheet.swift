@@ -20,10 +20,10 @@ struct CreateGallerySheet: View {
                         description: "Create a gallery to organize your artwork into collections"
                     ) {
                         AppTextField(
-                            label: "Name",
+                            label: "Gallery Name",
                             placeholder: "Enter gallery name",
-                            text: $galleryName,
-                            icon: "folder"
+                            icon: "folder",
+                            text: $galleryName
                         )
                         .focused($isNameFieldFocused)
                     }

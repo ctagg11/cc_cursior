@@ -8,14 +8,19 @@ struct CreateProjectSheet: View {
     @State private var showingImagePicker = false
     @State private var showingPaintSelector = false
     @State private var selectedColors: [PaintColor] = []
+    @State private var selectedImage: UIImage?
     
     var body: some View {
         NavigationStack {
             Form {
                 // Basic Info Section
                 Section("Project Details") {
-                    TextField("Project Name", text: $projectData.name)
-                        .textInputAutocapitalization(.words)
+                    AppTextField(
+                        label: "Project Name",
+                        placeholder: "Enter project name",
+                        icon: "paintpalette",
+                        text: $projectData.name
+                    )
                     
                     Picker("Medium", selection: $projectData.medium) {
                         Text("Select Medium").tag("")
@@ -29,6 +34,13 @@ struct CreateProjectSheet: View {
                 
                 // Reference & Inspiration Section
                 Section("References & Inspiration") {
+                    AppTextField(
+                        label: "Inspiration",
+                        placeholder: "What inspired this project?",
+                        icon: "sparkles",
+                        text: $projectData.inspiration
+                    )
+                    
                     TextEditor(text: $projectData.inspiration)
                         .frame(minHeight: 100)
                         .overlay(
@@ -57,10 +69,24 @@ struct CreateProjectSheet: View {
                         }
                     }
                     
-                    Button {
-                        showingImagePicker = true
-                    } label: {
-                        Label("Add Reference", systemImage: "photo")
+                    // Reference Image Section
+                    Section("Reference Image") {
+                        if let image = selectedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                            
+                            Button("Remove Image", role: .destructive) {
+                                selectedImage = nil
+                            }
+                        } else {
+                            Button {
+                                showingImagePicker = true
+                            } label: {
+                                Label("Add Reference Image", systemImage: "photo")
+                            }
+                        }
                     }
                 }
                 
@@ -120,11 +146,7 @@ struct CreateProjectSheet: View {
                 }
             }
             .sheet(isPresented: $showingImagePicker) {
-                ImagePicker { image in
-                    if let image = image {
-                        projectData.references.append(ReferenceImage(image: image))
-                    }
-                }
+                ImagePicker(selectedImage: $selectedImage)
             }
             .sheet(isPresented: $showingPaintSelector) {
                 PaintSelectorView(selectedColors: $selectedColors)
@@ -224,4 +246,5 @@ struct PaintSelectorView: View {
             }
         }
     }
-} 
+}
+

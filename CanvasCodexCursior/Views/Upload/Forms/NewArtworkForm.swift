@@ -18,6 +18,8 @@ struct NewArtworkForm: View {
     @State private var selectedGallery = ""
     @State private var showingError = false
     @State private var errorMessage = ""
+    @State private var referenceImage: UIImage?
+    @State private var showingImagePicker = false
     
     var body: some View {
         NavigationStack {
@@ -41,14 +43,13 @@ struct NewArtworkForm: View {
                             AppTextField(
                                 label: "Title",
                                 placeholder: "Enter artwork title",
-                                text: $formData.name,
-                                icon: "paintbrush"
+                                icon: "paintpalette",
+                                text: $formData.name
                             )
                             
-                            // Medium Picker
+                            // Simplified Medium Picker
                             VStack(alignment: .leading, spacing: 8) {
                                 AppText(text: "Medium", style: .caption)
-                                
                                 Picker("Medium", selection: $formData.medium) {
                                     Text("Select Medium").tag("")
                                     ForEach(CommonMediums.allCases, id: \.self) { medium in
@@ -56,8 +57,9 @@ struct NewArtworkForm: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
-                                .padding()
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
                                 .background(Color.gray.opacity(0.05))
                                 .cornerRadius(8)
                             }
@@ -97,6 +99,43 @@ struct NewArtworkForm: View {
                         }
                     }
                     
+                    // Reference Photo Section
+                    FormSection(
+                        title: "Reference Photo",
+                        description: "Add a reference image for your artwork"
+                    ) {
+                        VStack {
+                            if let referenceImage = referenceImage {
+                                Image(uiImage: referenceImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 200)
+                                    .cornerRadius(8)
+                                
+                                Button(role: .destructive) {
+                                    self.referenceImage = nil
+                                } label: {
+                                    Label("Remove Photo", systemImage: "trash")
+                                }
+                                .padding(.top, 8)
+                            } else {
+                                Button {
+                                    showingImagePicker = true
+                                } label: {
+                                    VStack {
+                                        Image(systemName: "photo.on.rectangle.angled")
+                                            .font(.system(size: 30))
+                                        Text("Add Reference Photo")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.gray.opacity(0.05))
+                                    .cornerRadius(8)
+                                }
+                            }
+                        }
+                    }
+                    
                     // Dimensions Section
                     FormSection(
                         title: "Dimensions",
@@ -110,26 +149,51 @@ struct NewArtworkForm: View {
                             }
                             .pickerStyle(.segmented)
                             
-                            // Dimension Fields
+                            // Updated Dimension Fields
                             if formData.dimensionType == .twoDimensional {
                                 HStack {
-                                    DimensionField(value: $formData.width, unit: $formData.units, label: "Width")
+                                    DimensionField(
+                                        value: $formData.width,
+                                        unit: $formData.units,
+                                        label: "Width",
+                                        placeholder: "0.00"
+                                    )
                                     Text("×")
                                         .foregroundStyle(.secondary)
-                                    DimensionField(value: $formData.height, unit: $formData.units, label: "Height")
+                                    DimensionField(
+                                        value: $formData.height,
+                                        unit: $formData.units,
+                                        label: "Height",
+                                        placeholder: "0.00"
+                                    )
                                 }
                             } else {
                                 VStack(spacing: 12) {
                                     HStack {
-                                        DimensionField(value: $formData.width, unit: $formData.units, label: "Width")
+                                        DimensionField(
+                                            value: $formData.width,
+                                            unit: $formData.units,
+                                            label: "Width",
+                                            placeholder: "0.00"
+                                        )
                                         Text("×")
                                             .foregroundStyle(.secondary)
-                                        DimensionField(value: $formData.height, unit: $formData.units, label: "Height")
+                                        DimensionField(
+                                            value: $formData.height,
+                                            unit: $formData.units,
+                                            label: "Height",
+                                            placeholder: "0.00"
+                                        )
                                     }
                                     HStack {
                                         Text("×")
                                             .foregroundStyle(.secondary)
-                                        DimensionField(value: $formData.depth, unit: $formData.units, label: "Depth")
+                                        DimensionField(
+                                            value: $formData.depth,
+                                            unit: $formData.units,
+                                            label: "Depth",
+                                            placeholder: "0.00"
+                                        )
                                     }
                                 }
                             }
@@ -183,17 +247,29 @@ struct NewArtworkForm: View {
                     viewModel.loadGalleries()
                 }
             }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $referenceImage)
+            }
         }
         .preferredColorScheme(.light)
     }
     
     private func saveArtwork() {
         print("Starting save artwork...")
+        print("Form data valid: \(formData.isValid)")
+        print("Name: \(formData.name)")
+        print("Gallery ID: \(formData.galleryId)")
+        print("Dimensions: \(formData.dimensions)")
+        
         do {
-            try viewModel.createArtwork(formData, image: image)
+            // Convert reference image to Data before saving
+            if let referenceImage = referenceImage {
+                formData.referenceImageData = referenceImage.jpegData(compressionQuality: 0.8)
+            }
+            
+            try viewModel.createArtwork(formData, image: image, referenceImage: referenceImage)
             print("Artwork saved successfully")
             
-            // Ensure we're on the main thread and add a completion handler
             DispatchQueue.main.async {
                 print("Dismissing form...")
                 dismiss()
@@ -208,17 +284,18 @@ struct NewArtworkForm: View {
     }
 }
 
-// Update DimensionField to match our style
+// Update DimensionField
 struct DimensionField: View {
     @Binding var value: Double
     @Binding var unit: DimensionUnit
     let label: String
+    let placeholder: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             AppText(text: label, style: .caption)
             
-            TextField(label, value: $value, format: .number.precision(.fractionLength(2)))
+            TextField(placeholder, value: $value, format: .number.precision(.fractionLength(2)))
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.center)
@@ -226,7 +303,7 @@ struct DimensionField: View {
                 .frame(maxWidth: 80)
                 .background(Color.gray.opacity(0.05))
                 .cornerRadius(8)
-                .onChange(of: value) { newValue in
+                .onChange(of: value) { oldValue, newValue in
                     if newValue.isNaN {
                         value = 0
                     }

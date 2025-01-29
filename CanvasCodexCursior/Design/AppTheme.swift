@@ -4,7 +4,7 @@ import SwiftUI
 enum AppTheme {
     // MARK: - Colors
     enum Colors {
-        static let primary = Color.indigo
+        static let primary = Color.accentColor
         static let secondary = Color.gray
         
         static let background = Color(UIColor.systemGroupedBackground)
@@ -17,6 +17,15 @@ enum AppTheme {
         static let success = Color.green
         static let error = Color.red
         static let warning = Color.orange
+        
+        struct Onboarding {
+            static let purple = Color.purple.opacity(0.3)
+            static let indigo = Color.indigo.opacity(0.3)
+            static let teal = Color.teal.opacity(0.3)
+            static let mint = Color.mint.opacity(0.3)
+            static let orange = Color.orange.opacity(0.3)
+            static let pink = Color.pink.opacity(0.3)
+        }
     }
     
     // MARK: - Spacing
