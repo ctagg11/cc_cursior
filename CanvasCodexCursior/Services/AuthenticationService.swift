@@ -1,5 +1,4 @@
 import FirebaseAuth
-import GoogleSignIn
 import AuthenticationServices
 import CryptoKit
 import FirebaseCore
@@ -63,56 +62,6 @@ class AuthenticationService: ObservableObject {
         }
     }
     
-    func signInWithGoogle() async throws {
-        print("Starting Google sign-in process...")
-        guard let clientID = FirebaseApp.app()?.options.clientID else {
-            print("❌ Failed to get clientID from Firebase config")
-            throw AuthenticationError.signInError("Firebase configuration not found")
-        }
-        print("📱 Using clientID: \(clientID)")
-        
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-        
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootViewController = window.rootViewController else {
-            print("❌ Failed to get root view controller")
-            throw AuthenticationError.signInError("Unable to present sign in window")
-        }
-        
-        do {
-            print("🔄 Attempting to present Google sign-in...")
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
-            print("✅ Google sign-in UI completed")
-            
-            guard let idToken = try await result.user.idToken?.tokenString else {
-                print("❌ Failed to get ID token from Google sign-in result")
-                throw AuthenticationError.signInError("Failed to get ID token")
-            }
-            print("✅ Successfully got Google ID token")
-            
-            let accessToken = try await result.user.accessToken.tokenString
-            print("✅ Successfully got access token")
-            
-            let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: accessToken
-            )
-            print("🔄 Attempting to sign in with Firebase...")
-            let authResult = try await Auth.auth().signIn(with: credential)
-            print("✅ Firebase sign-in successful")
-            
-            await MainActor.run {
-                self.user = authResult.user
-                self.isAuthenticated = true
-            }
-        } catch {
-            print("❌ Google sign-in error: \(error)")
-            throw AuthenticationError.signInError(error.localizedDescription)
-        }
-    }
-    
     func signInWithApple() async throws {
         let nonce = randomNonceString()
         currentNonce = nonce
@@ -121,9 +70,9 @@ class AuthenticationService: ObservableObject {
         request.requestedScopes = [.fullName, .email]
         request.nonce = sha256(nonce)
         
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootViewController = window.rootViewController else {
+        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = await windowScene.windows.first,
+              let rootViewController = await window.rootViewController else {
             throw AuthenticationError.signInError("No root view controller found")
         }
         

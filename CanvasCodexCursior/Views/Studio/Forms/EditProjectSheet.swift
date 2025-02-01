@@ -95,4 +95,4 @@ struct EditProjectSheet: View {
             print("Error updating project: \(error)")
         }
     }
-} 
+}

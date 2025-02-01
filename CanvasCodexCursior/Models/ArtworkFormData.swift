@@ -62,4 +62,4 @@ struct ArtworkFormData {
         }
         return value
     }
-} 
+}
