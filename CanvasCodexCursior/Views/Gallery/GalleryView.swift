@@ -157,7 +157,7 @@ struct ArtworkThumbnail: View {
                 .lineLimit(2)
                 .foregroundStyle(.primary)
         }
-        .frame(width: 200)
+        .frame(width: 250)
     }
 }
 
@@ -172,8 +172,8 @@ struct EmptyGalleryView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
-        .frame(width: 200, height: 250)
+        .frame(width: 250, height: 300)
         .background(Color.gray.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
-} 
+}

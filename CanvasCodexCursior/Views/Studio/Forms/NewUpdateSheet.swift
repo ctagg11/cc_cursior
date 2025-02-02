@@ -12,6 +12,11 @@ struct NewUpdateSheet: View {
     @State private var showingScanner = false
     @State private var scannedImage: UIImage?
     
+    init(project: ProjectEntity, initialImage: UIImage? = nil) {
+        self.project = project
+        self._scannedImage = State(initialValue: initialImage)
+    }
+    
     var body: some View {
         NavigationStack {
             Form {

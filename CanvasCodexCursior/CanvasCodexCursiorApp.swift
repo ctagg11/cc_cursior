@@ -7,6 +7,7 @@
 
 import SwiftUI
 import FirebaseCore
+import FirebaseAuth
 
 @main
 struct CanvasCodexCursiorApp: App {
@@ -16,26 +17,54 @@ struct CanvasCodexCursiorApp: App {
     
     init() {
         FirebaseBootstrap.configure()
+        print("📱 App: Starting")
+        print("📱 App: hasSeenOnboarding: \(hasSeenOnboarding)")
+        print("📱 App: Auth state: \(Auth.auth().currentUser != nil)")
     }
     
     var body: some Scene {
         WindowGroup {
-            if !hasSeenOnboarding {
-                OnboardingView()
-                    .environmentObject(authService)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-            } else if authService.isAuthenticated {
-                MainTabView()
-                    .environmentObject(authService)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-            } else {
-                LoginView()
-                    .environmentObject(authService)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            Group {
+                if authService.isAuthenticated {
+                    MainTabView()
+                        .onAppear {
+                            print("📱 App: Showing MainTabView")
+                            hasSeenOnboarding = true // Ensure this is set if authenticated
+                        }
+                } else if !hasSeenOnboarding {
+                    EnhancedOnboardingView()
+                        .onDisappear {
+                            print("📱 App: Onboarding disappeared")
+                            hasSeenOnboarding = true
+                        }
+                        .onAppear {
+                            print("📱 App: Showing Onboarding")
+                        }
+                } else {
+                    AuthenticationCoordinator()
+                        .onAppear {
+                            print("📱 App: Showing AuthenticationCoordinator")
+                        }
+                }
             }
+            .environmentObject(authService)
+            .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
+
+#if DEBUG
+// Debug helper to reset all states
+extension UserDefaults {
+    static func resetDefaults() {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+    }
+}
+#endif
+
+
 
 
 

@@ -5,8 +5,16 @@ struct CodableColor: Codable {
     let hex: String
     
     init(_ color: Color) {
-        // For now, just store white - we'll need to implement color to hex conversion
-        self.hex = "#FFFFFF"
+        // Store the actual color's hex value
+        if let hexString = color.description.components(separatedBy: "hex:").last?.trimmingCharacters(in: .whitespaces) {
+            self.hex = hexString
+        } else {
+            self.hex = "#FFFFFF" // Fallback to white only if conversion fails
+        }
+    }
+    
+    init(hex: String) {
+        self.hex = hex
     }
     
     var color: Color {
@@ -110,26 +118,20 @@ class PaintDatabase {
     
     // Load from local JSON in a real implementation
     private var standardColors: [PaintColor] = [
-        // Winsor & Newton Oils
-        PaintColor(name: "Titanium White", brand: .winsorNewton, color: Color(hex: "#FFFFFF"), type: .oil, series: "1", code: "644", lightfastness: .excellent, opacity: .opaque),
-        PaintColor(name: "Ivory Black", brand: .winsorNewton, color: Color(hex: "#000000"), type: .oil, series: "1", code: "331", lightfastness: .excellent, opacity: .opaque),
-        PaintColor(name: "Cadmium Red", brand: .winsorNewton, color: Color(hex: "#E3000B"), type: .oil, series: "4", code: "094", lightfastness: .excellent, opacity: .opaque),
-        PaintColor(name: "French Ultramarine", brand: .winsorNewton, color: Color(hex: "#1C3AA9"), type: .oil, series: "2", code: "263", lightfastness: .excellent, opacity: .semiopaque),
-        PaintColor(name: "Cadmium Yellow", brand: .winsorNewton, color: Color(hex: "#FFB800"), type: .oil, series: "4", code: "108", lightfastness: .excellent, opacity: .opaque),
-        PaintColor(name: "Viridian", brand: .winsorNewton, color: Color(hex: "#007F66"), type: .oil, series: "4", code: "692", lightfastness: .excellent, opacity: .transparent),
-        PaintColor(name: "Burnt Sienna", brand: .winsorNewton, color: Color(hex: "#8A3324"), type: .oil, series: "1", code: "074", lightfastness: .excellent, opacity: .semitransparent),
-        PaintColor(name: "Raw Umber", brand: .winsorNewton, color: Color(hex: "#826644"), type: .oil, series: "1", code: "554", lightfastness: .excellent, opacity: .semiopaque),
-        PaintColor(name: "Yellow Ochre", brand: .winsorNewton, color: Color(hex: "#CC7722"), type: .oil, series: "1", code: "744", lightfastness: .excellent, opacity: .semiopaque),
-        PaintColor(name: "Cobalt Blue", brand: .winsorNewton, color: Color(hex: "#0047AB"), type: .oil, series: "4", code: "178", lightfastness: .excellent, opacity: .semiopaque),
-        PaintColor(name: "Permanent Alizarin Crimson", brand: .winsorNewton, color: Color(hex: "#E32636"), type: .oil, series: "3", code: "468", lightfastness: .excellent, opacity: .transparent),
-        PaintColor(name: "Cobalt Violet", brand: .winsorNewton, color: Color(hex: "#8E4585"), type: .oil, series: "5", code: "192", lightfastness: .excellent, opacity: .semitransparent),
-        PaintColor(name: "Cerulean Blue", brand: .winsorNewton, color: Color(hex: "#2A52BE"), type: .oil, series: "4", code: "137", lightfastness: .excellent, opacity: .semiopaque),
-        PaintColor(name: "Phthalo Blue (Red Shade)", brand: .winsorNewton, color: Color(hex: "#000F89"), type: .oil, series: "2", code: "514", lightfastness: .excellent, opacity: .transparent),
-        PaintColor(name: "Phthalo Green (Yellow Shade)", brand: .winsorNewton, color: Color(hex: "#123524"), type: .oil, series: "2", code: "522", lightfastness: .excellent, opacity: .transparent),
-        PaintColor(name: "Permanent Sap Green", brand: .winsorNewton, color: Color(hex: "#507D2A"), type: .oil, series: "2", code: "503", lightfastness: .excellent, opacity: .transparent),
-        PaintColor(name: "Naples Yellow Light", brand: .winsorNewton, color: Color(hex: "#FFE5B4"), type: .oil, series: "2", code: "422", lightfastness: .excellent, opacity: .opaque),
-        PaintColor(name: "Indian Red", brand: .winsorNewton, color: Color(hex: "#CD5C5C"), type: .oil, series: "1", code: "317", lightfastness: .excellent, opacity: .opaque),
-
+        // Winsor & Newton Artists' Oil Colours - Verified from W&N website
+        PaintColor(name: "Titanium White", brand: .winsorNewton, color: Color(hex: "#FFFFFF"), type: .oil, series: "1", code: "644"),
+        PaintColor(name: "Cadmium Yellow Light", brand: .winsorNewton, color: Color(hex: "#FFF44F"), type: .oil, series: "4", code: "086"),
+        PaintColor(name: "Cadmium Yellow", brand: .winsorNewton, color: Color(hex: "#FFB81C"), type: .oil, series: "4", code: "108"),
+        PaintColor(name: "French Ultramarine", brand: .winsorNewton, color: Color(hex: "#1B365D"), type: .oil, series: "2", code: "263"),
+        PaintColor(name: "Cobalt Blue", brand: .winsorNewton, color: Color(hex: "#0047AB"), type: .oil, series: "4", code: "178"),
+        PaintColor(name: "Cerulean Blue", brand: .winsorNewton, color: Color(hex: "#2A52BE"), type: .oil, series: "4", code: "137"),
+        PaintColor(name: "Viridian", brand: .winsorNewton, color: Color(hex: "#007F66"), type: .oil, series: "4", code: "692"),
+        PaintColor(name: "Permanent Alizarin Crimson", brand: .winsorNewton, color: Color(hex: "#E32636"), type: .oil, series: "3", code: "468"),
+        PaintColor(name: "Burnt Sienna", brand: .winsorNewton, color: Color(hex: "#8A3324"), type: .oil, series: "1", code: "074"),
+        PaintColor(name: "Yellow Ochre", brand: .winsorNewton, color: Color(hex: "#CC7722"), type: .oil, series: "1", code: "744"),
+        PaintColor(name: "Raw Umber", brand: .winsorNewton, color: Color(hex: "#826644"), type: .oil, series: "1", code: "554"),
+        PaintColor(name: "Ivory Black", brand: .winsorNewton, color: Color(hex: "#1B1B1B"), type: .oil, series: "1", code: "331"),
+        
         // Winsor & Newton Watercolors
         PaintColor(name: "Alizarin Crimson", brand: .winsorNewton, color: Color(hex: "#E32636"), type: .watercolor, series: "1", code: "004", lightfastness: .fair, opacity: .transparent),
         PaintColor(name: "Cerulean Blue", brand: .winsorNewton, color: Color(hex: "#2A52BE"), type: .watercolor, series: "3", code: "137", lightfastness: .excellent, opacity: .semiopaque),
@@ -145,7 +147,6 @@ class PaintDatabase {
         PaintColor(name: "Neutral Tint", brand: .winsorNewton, color: Color(hex: "#736664"), type: .watercolor, series: "1", code: "425", lightfastness: .excellent, opacity: .transparent),
 
         // Winsor & Newton Professional Acrylics
-        PaintColor(name: "Titanium White", brand: .winsorNewton, color: Color(hex: "#FFFFFF"), type: .acrylic, series: "1", code: "644", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Mars Black", brand: .winsorNewton, color: Color(hex: "#232323"), type: .acrylic, series: "1", code: "386", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Phthalo Blue (Green Shade)", brand: .winsorNewton, color: Color(hex: "#000F89"), type: .acrylic, series: "2", code: "515", lightfastness: .excellent, opacity: .transparent),
         PaintColor(name: "Cadmium Yellow Medium", brand: .winsorNewton, color: Color(hex: "#FFB200"), type: .acrylic, series: "4", code: "111", lightfastness: .excellent, opacity: .opaque),
@@ -153,13 +154,11 @@ class PaintDatabase {
         PaintColor(name: "Yellow Ochre", brand: .winsorNewton, color: Color(hex: "#CC7722"), type: .acrylic, series: "1", code: "744", lightfastness: .excellent, opacity: .semiopaque),
 
         // Golden Acrylics
-        PaintColor(name: "Titanium White", brand: .goldenAcrylics, color: Color(hex: "#FFFFFF"), type: .acrylic, series: "1", code: "8380", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Carbon Black", brand: .goldenAcrylics, color: Color(hex: "#000000"), type: .acrylic, series: "1", code: "8040", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Quinacridone Magenta", brand: .goldenAcrylics, color: Color(hex: "#8E4585"), type: .acrylic, series: "6", code: "8320", lightfastness: .excellent, opacity: .transparent),
         PaintColor(name: "Phthalo Blue (GS)", brand: .goldenAcrylics, color: Color(hex: "#0C3B7B"), type: .acrylic, series: "4", code: "8300", lightfastness: .excellent, opacity: .transparent),
         
         // Daniel Smith Watercolors
-        PaintColor(name: "Quinacridone Gold", brand: .danielSmith, color: Color(hex: "#C5832B"), type: .watercolor, series: "2", code: "129", lightfastness: .excellent, opacity: .transparent),
         PaintColor(name: "Phthalo Blue GS", brand: .danielSmith, color: Color(hex: "#0093AF"), type: .watercolor, series: "1", code: "284", lightfastness: .excellent, opacity: .transparent),
         PaintColor(name: "Lunar Black", brand: .danielSmith, color: Color(hex: "#1C1C1C"), type: .watercolor, series: "1", code: "211", lightfastness: .excellent, opacity: .semiopaque),
         
@@ -177,7 +176,6 @@ class PaintDatabase {
         PaintColor(name: "Purple Magenta", brand: .schmincke, color: Color(hex: "#9F1F6A"), type: .watercolor, series: "2", code: "367", lightfastness: .excellent, opacity: .transparent),
         
         // M. Graham Oils
-        PaintColor(name: "Titanium White", brand: .mgraham, color: Color(hex: "#FFFFFF"), type: .oil, series: "1", code: "11-150", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Ultramarine Blue", brand: .mgraham, color: Color(hex: "#1C1C7C"), type: .oil, series: "2", code: "11-510", lightfastness: .excellent, opacity: .transparent),
         
         // Liquitex Acrylics
@@ -186,7 +184,6 @@ class PaintDatabase {
         PaintColor(name: "Quinacridone Crimson", brand: .liquitex, color: Color(hex: "#C41E3A"), type: .acrylic, series: "2", code: "110", lightfastness: .excellent, opacity: .transparent),
         
         // Amsterdam Acrylics
-        PaintColor(name: "Titanium White", brand: .amsterdamAcrylic, color: Color(hex: "#FFFFFF"), type: .acrylic, series: "1", code: "105", lightfastness: .excellent, opacity: .opaque),
         PaintColor(name: "Primary Yellow", brand: .amsterdamAcrylic, color: Color(hex: "#FCD116"), type: .acrylic, series: "1", code: "275", lightfastness: .excellent, opacity: .semiopaque),
         PaintColor(name: "Primary Cyan", brand: .amsterdamAcrylic, color: Color(hex: "#0077BB"), type: .acrylic, series: "1", code: "572", lightfastness: .excellent, opacity: .transparent)
     ]

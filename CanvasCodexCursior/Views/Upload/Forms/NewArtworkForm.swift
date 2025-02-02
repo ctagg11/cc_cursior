@@ -250,6 +250,11 @@ struct NewArtworkForm: View {
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(selectedImage: $referenceImage)
             }
+            .alert("Error Saving", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
         .preferredColorScheme(.light)
     }
