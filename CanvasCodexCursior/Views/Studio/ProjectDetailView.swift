@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     let project: ProjectEntity
-    @StateObject private var viewModel = ArtworkViewModel()
+    @StateObject private var viewModel = ProjectViewModel()
     @State private var selectedTab = 0
     @State private var showingNewUpdate = false
     @State private var showingEditProject = false
@@ -20,7 +20,7 @@ struct ProjectDetailView: View {
             // Tab Picker
             Picker("Section", selection: $selectedTab) {
                 Text("Progress").tag(0)
-                Text("References").tag(1)
+                Text("Resources").tag(1)
                 Text("Notes").tag(2)
             }
             .pickerStyle(.segmented)
@@ -78,7 +78,7 @@ struct ProjectDetailView: View {
 struct ProgressUpdatesView: View {
     let project: ProjectEntity
     @Binding var showingNewUpdate: Bool
-    @StateObject private var viewModel = ArtworkViewModel()
+    @StateObject private var viewModel = ProjectViewModel()
     @State private var selectedUpdate: ProjectUpdateEntity?
     
     var sortedUpdates: [ProjectUpdateEntity] {
@@ -130,10 +130,10 @@ struct ProgressUpdatesView: View {
         .sheet(isPresented: $showingNewUpdate) {
             NewUpdateSheet(project: project)
         }
-        .onChange(of: sortedUpdates) { newUpdates in
+        .onChange(of: sortedUpdates) { oldValue, newValue in
             // Reset selection to latest when new updates are added
-            if !newUpdates.isEmpty {
-                selectedUpdate = newUpdates.first
+            if !newValue.isEmpty {
+                selectedUpdate = newValue.first
             }
         }
     }
@@ -144,7 +144,9 @@ struct ReferencesView: View {
     @Binding var showingScanner: Bool
     
     var references: [ReferenceEntity] {
-        project.references?.allObjects as? [ReferenceEntity] ?? []
+        let refs = project.references?.allObjects as? [ReferenceEntity] ?? []
+        print("DEBUG: Loading \(refs.count) references for project")
+        return refs
     }
     
     var body: some View {
@@ -159,12 +161,14 @@ struct ReferencesView: View {
                 .padding()
                 
                 if references.isEmpty {
+                    let _ = print("DEBUG: No references found for project")
                     ContentUnavailableView(
                         "No References",
                         systemImage: "photo",
                         description: Text("Add reference images to help guide your project")
                     )
                 } else {
+                    let _ = print("DEBUG: Displaying \(references.count) references")
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 16) {
                         ForEach(references) { reference in
                             ReferenceImageView(reference: reference)
@@ -173,6 +177,9 @@ struct ReferencesView: View {
                 }
             }
             .padding()
+        }
+        .onAppear {
+            print("DEBUG: ReferencesView appeared")
         }
     }
 }

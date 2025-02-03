@@ -3,7 +3,7 @@ import SwiftUI
 struct CreateProjectSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
-    @StateObject private var viewModel = ArtworkViewModel()
+    @StateObject private var viewModel = ProjectViewModel()
     @State private var projectData = ProjectFormData()
     @State private var showingImagePicker = false
     @State private var showingPaintSelector = false
@@ -76,9 +76,25 @@ struct CreateProjectSheet: View {
                             .scaledToFit()
                             .frame(maxHeight: 200)
                         
-                        Button("Remove Image", role: .destructive) {
-                            selectedImage = nil
+                        HStack {
+                            Button("Confirm Reference Photo", systemImage: "checkmark.circle") {
+                                print("DEBUG: Adding image to references")
+                                let reference = ReferenceImage(image: image)
+                                projectData.references.append(reference)
+                                selectedImage = nil  // Clear selected image after adding to references
+                                print("DEBUG: Current references count: \(projectData.references.count)")
+                            }
+                            .foregroundColor(.green)
+                            
+                            Spacer()
+                            
+                            Button(role: .destructive) {
+                                selectedImage = nil
+                            } label: {
+                                Label("Remove", systemImage: "xmark.circle")
+                            }
                         }
+                        .padding(.vertical, 4)
                     } else {
                         Button {
                             showingImagePicker = true
@@ -180,6 +196,12 @@ struct CreateProjectSheet: View {
             }
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(selectedImage: $selectedImage)
+                    .onChange(of: selectedImage) { oldValue, newValue in
+                        if let image = newValue {
+                            print("DEBUG: Image selected from picker")
+                            // Don't automatically add to references, wait for user confirmation
+                        }
+                    }
             }
             .sheet(isPresented: $showingPaintSelector) {
                 PaintSelectorView(selectedColors: $selectedColors)
@@ -189,11 +211,16 @@ struct CreateProjectSheet: View {
     
     private func save() {
         do {
+            print("DEBUG: Starting save")
+            print("DEBUG: References count: \(projectData.references.count)")
+            print("DEBUG: References contents: \(projectData.references.map { $0.id })")
+            
             // Create the project first
             try viewModel.createProject(projectData, context: viewContext)
             
             // If we have an initial update, save it
             if let update = initialUpdate {
+                print("DEBUG: Saving initial update")
                 try viewModel.saveWorkInProgress(
                     projectName: projectData.name,
                     updateTitle: updateTitle,
@@ -206,7 +233,8 @@ struct CreateProjectSheet: View {
             
             dismiss()
         } catch {
-            // Handle error
+            print("DEBUG: Error saving project: \(error)")
+            print("DEBUG: Error details: \(error.localizedDescription)")
         }
     }
 }

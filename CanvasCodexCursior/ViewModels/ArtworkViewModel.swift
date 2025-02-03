@@ -161,6 +161,7 @@ class ArtworkViewModel: ObservableObject {
     }
     
     func createProject(_ data: ProjectFormData, context: NSManagedObjectContext) throws {
+        print("DEBUG: Creating project with \(data.references.count) references")
         let project = ProjectEntity(context: context)
         project.id = UUID()
         project.name = data.name
@@ -175,17 +176,22 @@ class ArtworkViewModel: ObservableObject {
         
         // Save references
         for reference in data.references {
+            print("DEBUG: Attempting to save reference image")
             guard let fileName = ImageManager.shared.saveImage(reference.image, category: .reference) else {
+                print("DEBUG: Failed to save reference image")
                 continue
             }
             
             let referenceEntity = ReferenceEntity(context: context)
             referenceEntity.id = UUID()
             referenceEntity.imageFileName = fileName
+            referenceEntity.title = "Reference Image"
             project.addToReferences(referenceEntity)
+            print("DEBUG: Successfully saved reference with fileName: \(fileName)")
         }
         
         try context.save()
+        print("DEBUG: Project saved successfully with \(project.references?.count ?? 0) references")
         loadProjects() // Add this line to refresh the projects list
     }
     
