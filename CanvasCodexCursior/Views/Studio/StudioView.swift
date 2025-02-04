@@ -4,9 +4,15 @@ import CoreData
 struct StudioView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var sortOption = SortOption.lastActivity
-    @State private var filterOption = FilterOption.all
+    @State private var showActiveOnly = false
     @State private var searchText = ""
     @State private var showingCreateSheet = false
+    @State private var selectedSection = Section.projects
+    
+    enum Section {
+        case projects
+        case components
+    }
     
     enum SortOption {
         case lastActivity
@@ -25,89 +31,22 @@ struct StudioView: View {
         }
     }
     
-    enum FilterOption: String, CaseIterable {
-        case all = "All"
-        case active = "In Progress"
-        case completed = "Completed"
-        case oil = "Oil"
-        case watercolor = "Watercolor"
-        case acrylic = "Acrylic"
-        case other = "Other"
-        
-        var predicate: NSPredicate? {
-            switch self {
-            case .all: return nil
-            case .active: return NSPredicate(format: "isCompleted == NO")
-            case .completed: return NSPredicate(format: "isCompleted == YES")
-            case .oil: return NSPredicate(format: "medium CONTAINS[cd] 'oil'")
-            case .watercolor: return NSPredicate(format: "medium CONTAINS[cd] 'watercolor'")
-            case .acrylic: return NSPredicate(format: "medium CONTAINS[cd] 'acrylic'")
-            case .other: return NSPredicate(format: "NOT (medium CONTAINS[cd] 'oil' OR medium CONTAINS[cd] 'watercolor' OR medium CONTAINS[cd] 'acrylic')")
-            }
-        }
-    }
-    
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Filter Pills
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(FilterOption.allCases, id: \.self) { filter in
-                            FilterPill(title: filter.rawValue, 
-                                     isSelected: filterOption == filter) {
-                                filterOption = filter
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
+                // Section Picker
+                Picker("Section", selection: $selectedSection) {
+                    Text("Works in Progress").tag(Section.projects)
+                    Text("Art Components").tag(Section.components)
                 }
-                .padding(.vertical, 8)
+                .pickerStyle(.segmented)
+                .padding()
                 
-                // Projects List
-                Group {
-                    if projects.isEmpty {
-                        ContentUnavailableView(
-                            searchText.isEmpty ? "No Projects" : "No Results",
-                            systemImage: "paintpalette",
-                            description: Text(searchText.isEmpty ? 
-                                "Create a project to start tracking your works in progress" : 
-                                "Try adjusting your search or filters")
-                        )
-                    } else {
-                        List {
-                            ForEach(projects) { project in
-                                NavigationLink(destination: ProjectDetailView(project: project)) {
-                                    ProjectRow(project: project)
-                                }
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        deleteProject(project)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                    
-                                    Button {
-                                        toggleProjectCompletion(project)
-                                    } label: {
-                                        Label(
-                                            project.isCompleted ? "Mark Incomplete" : "Mark Complete",
-                                            systemImage: project.isCompleted ? "xmark.circle" : "checkmark.circle"
-                                        )
-                                    }
-                                    .tint(.blue)
-                                }
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        // Show quick update sheet
-                                    } label: {
-                                        Label("Update", systemImage: "square.and.pencil")
-                                    }
-                                    .tint(.green)
-                                }
-                            }
-                        }
-                    }
+                // Content
+                if selectedSection == .projects {
+                    projectsContent
+                } else {
+                    componentsContent
                 }
             }
             .navigationTitle("Studio")
@@ -119,8 +58,10 @@ struct StudioView: View {
                             Label("Creation Date", systemImage: "calendar").tag(SortOption.creationDate)
                             Label("Name", systemImage: "textformat").tag(SortOption.name)
                         }
+                        
+                        Toggle("Show Active Only", isOn: $showActiveOnly)
                     } label: {
-                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                        Label("Sort & Filter", systemImage: "line.3.horizontal.decrease.circle")
                     }
                 }
                 
@@ -134,10 +75,62 @@ struct StudioView: View {
             }
             .searchable(text: $searchText, prompt: "Search projects")
             .sheet(isPresented: $showingCreateSheet) {
-                CreateProjectSheet()
-                    .environment(\.managedObjectContext, viewContext)
+                if selectedSection == .projects {
+                    CreateProjectSheet()
+                        .environment(\.managedObjectContext, viewContext)
+                } else {
+                    ArtComponentSheet()
+                        .environment(\.managedObjectContext, viewContext)
+                }
             }
         }
+    }
+    
+    private var projectsContent: some View {
+        Group {
+            if projects.isEmpty {
+                ContentUnavailableView(
+                    searchText.isEmpty ? "No Projects" : "No Results",
+                    systemImage: "paintpalette",
+                    description: Text(searchText.isEmpty ? 
+                        "Create a project to start tracking your works in progress" : 
+                        "Try adjusting your search or filters")
+                )
+            } else {
+                List {
+                    ForEach(projects) { project in
+                        NavigationLink(destination: ProjectDetailView(project: project)) {
+                            ProjectRow(project: project)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                deleteProject(project)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            
+                            Button {
+                                toggleProjectCompletion(project)
+                            } label: {
+                                Label(
+                                    project.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                                    systemImage: project.isCompleted ? "xmark.circle" : "checkmark.circle"
+                                )
+                            }
+                            .tint(.blue)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var componentsContent: some View {
+        ContentUnavailableView(
+            "Coming Soon",
+            systemImage: "square.stack.3d.up",
+            description: Text("Art Components will help you organize reusable elements of your artwork")
+        )
     }
     
     private var projects: [ProjectEntity] {
@@ -145,9 +138,11 @@ struct StudioView: View {
         
         // Combine predicates
         var predicates: [NSPredicate] = []
-        if let filterPredicate = filterOption.predicate {
-            predicates.append(filterPredicate)
+        
+        if showActiveOnly {
+            predicates.append(NSPredicate(format: "isCompleted == NO"))
         }
+        
         if !searchText.isEmpty {
             predicates.append(NSPredicate(format: "name CONTAINS[cd] %@", searchText))
         }

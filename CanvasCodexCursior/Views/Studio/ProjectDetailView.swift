@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct ProjectDetailView: View {
     let project: ProjectEntity

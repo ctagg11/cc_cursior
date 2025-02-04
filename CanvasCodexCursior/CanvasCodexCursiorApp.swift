@@ -16,7 +16,12 @@ struct CanvasCodexCursiorApp: App {
     let persistenceController = PersistenceController.shared
     
     init() {
-        FirebaseBootstrap.configure()
+        // Register value transformers
+        StringArrayTransformer.register()
+        
+        // Configure Firebase
+        FirebaseApp.configure()
+        
         print("📱 App: Starting")
         print("📱 App: hasSeenOnboarding: \(hasSeenOnboarding)")
         print("📱 App: Auth state: \(Auth.auth().currentUser != nil)")

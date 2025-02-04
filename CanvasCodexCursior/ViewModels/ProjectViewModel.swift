@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+@MainActor
 class ProjectViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext
     @Published var projects: [ProjectEntity] = []
@@ -69,5 +70,38 @@ class ProjectViewModel: ObservableObject {
         update.title = updateTitle
         update.changes = changes
         update.todoNotes = todoNotes
+        update.isPublic = isPublic
+        update.imageFileName = fileName
         update.date = Date()
-        upda
+        
+        // Find or create project
+        let projectFetch: NSFetchRequest<ProjectEntity> = ProjectEntity.fetchRequest()
+        projectFetch.predicate = NSPredicate(format: "name == %@", projectName)
+        
+        if let project = try? viewContext.fetch(projectFetch).first {
+            project.addToUpdates(update)
+            project.lastActivityDate = update.date
+        }
+        
+        try viewContext.save()
+    }
+    
+    func updateProject(_ project: ProjectEntity, with data: ProjectFormData) throws {
+        project.name = data.name
+        project.medium = data.medium
+        project.startDate = data.startDate
+        project.inspiration = data.inspiration
+        project.skills = data.skills
+        project.timeEstimate = data.timeEstimate.rawValue
+        project.priority = data.priority.rawValue
+        
+        try viewContext.save()
+        loadProjects()
+    }
+    
+    func deleteProject(_ project: ProjectEntity) {
+        viewContext.delete(project)
+        try? viewContext.save()
+        loadProjects()
+    }
+}
