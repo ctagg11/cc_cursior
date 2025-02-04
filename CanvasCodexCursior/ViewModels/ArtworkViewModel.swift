@@ -305,6 +305,21 @@ class ArtworkViewModel: ObservableObject {
             artworks = []
         }
     }
+    
+    func createComponentTag(_ formData: ComponentTagFormData, for artwork: ArtworkEntity) throws {
+        let tag = ComponentTagEntity.create(
+            from: formData,
+            artwork: artwork,
+            context: viewContext
+        )
+        
+        try viewContext.save()
+    }
+    
+    func deleteComponentTag(_ tag: ComponentTagEntity) throws {
+        viewContext.delete(tag)
+        try viewContext.save()
+    }
 }
 
 enum ArtworkError: LocalizedError {

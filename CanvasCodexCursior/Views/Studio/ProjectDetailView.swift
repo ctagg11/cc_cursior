@@ -201,9 +201,6 @@ struct NotesView: View {
                         DetailRow(label: "Skills", value: skills)
                     }
                     
-                    if let timeEstimate = project.timeEstimate {
-                        DetailRow(label: "Time Estimate", value: timeEstimate)
-                    }
                     
                     if let priority = project.priority {
                         DetailRow(label: "Priority", value: priority)

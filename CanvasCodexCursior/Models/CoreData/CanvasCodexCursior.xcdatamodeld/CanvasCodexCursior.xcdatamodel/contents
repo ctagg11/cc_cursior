@@ -8,6 +8,7 @@
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer" customClassName="[String]"/>
+        <relationship name="componentTags" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ComponentTagEntity" inverseName="component" inverseEntity="ComponentTagEntity"/>
     </entity>
     <entity name="ArtworkEntity" representedClassName="CanvasCodexCursior.ArtworkEntity" syncable="YES" codeGenerationType="class">
         <attribute name="completionDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -26,8 +27,24 @@
         <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="units" optional="YES" attributeType="String"/>
         <attribute name="width" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="componentTags" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="ComponentTagEntity" inverseName="artwork" inverseEntity="ComponentTagEntity"/>
         <relationship name="galleries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="GalleryEntity" inverseName="artworks" inverseEntity="GalleryEntity"/>
         <relationship name="references" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ReferenceEntity" inverseName="artwork" inverseEntity="ReferenceEntity"/>
+    </entity>
+    <entity name="ComponentTagEntity" representedClassName=".ComponentTagEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="attribute" optional="YES" attributeType="String"/>
+        <attribute name="componentType" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="locationX" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="locationY" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="processSteps" optional="YES" attributeType="String"/>
+        <attribute name="rating1" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="rating2" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="artwork" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ArtworkEntity" inverseName="componentTags" inverseEntity="ArtworkEntity"/>
+        <relationship name="component" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ArtComponentEntity" inverseName="componentTags" inverseEntity="ArtComponentEntity"/>
     </entity>
     <entity name="GalleryEntity" representedClassName="CanvasCodexCursior.GalleryEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
