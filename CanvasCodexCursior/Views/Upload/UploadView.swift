@@ -14,12 +14,12 @@ struct UploadView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
-                    // Main upload button - 44pt minimum touch target
+                    // Main scan button
                     Button(action: { showingOptions = true }) {
                         VStack(spacing: 16) {
-                            Image(systemName: "plus.viewfinder")
+                            Image(systemName: "doc.viewfinder")  // Changed icon to better match scanning
                                 .font(.system(size: 44))
-                            Text("Add Artwork")
+                            Text("Scan Artwork")
                                 .font(.headline)
                         }
                         .foregroundStyle(.white)
@@ -31,6 +31,30 @@ struct UploadView: View {
                     }
                     .shadow(radius: 5)
                     .padding(.top, 20)
+                    
+                    // Divider text
+                    Text("or")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                    
+                    // Photo library button
+                    Button(action: {
+                        // TODO: Add photo picker functionality
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "photo.on.rectangle")
+                            Text("Choose from Photo Library")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 200, minHeight: 50)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.indigo.opacity(0.8))
+                        )
+                    }
+                    .shadow(radius: 3)
                     
                     // Options description
                     VStack(alignment: .leading, spacing: 24) {
@@ -56,7 +80,14 @@ struct UploadView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Upload")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Upload")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
+            }
             .sheet(isPresented: $showingOptions) {
                 UploadOptionsSheet(
                     isPresented: $showingOptions,
@@ -102,5 +133,38 @@ struct UploadView: View {
     
     private func showNewArtworkForm(with image: UIImage) {
         identifiableImage = IdentifiableImage(image: image)
+    }
+}
+
+#Preview("Upload View") {
+    UploadView(selectedTab: .constant(2)) // 2 represents the upload tab
+}
+
+// Add multiple previews to see different states
+#Preview("Upload View - Dark Mode") {
+    UploadView(selectedTab: .constant(2))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Upload View - Compact") {
+    UploadView(selectedTab: .constant(2))
+        .previewLayout(.sizeThatFits)
+}
+
+// Preview helper for testing different states
+struct UploadView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            NavigationStack {
+                UploadView(selectedTab: .constant(2))
+            }
+            .previewDisplayName("Default")
+            
+            NavigationStack {
+                UploadView(selectedTab: .constant(2))
+            }
+            .environment(\.sizeCategory, .extraExtraLarge)
+            .previewDisplayName("Large Text")
+        }
     }
 } 

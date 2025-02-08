@@ -19,14 +19,26 @@ struct GalleryView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if isEditingOrder {
+                if galleries.isEmpty {
+                    ContentUnavailableView(
+                        "No Galleries",
+                        systemImage: "photo.stack",
+                        description: Text("Create a gallery and upload your art to display your work")
+                    )
+                    .padding()
+                } else if isEditingOrder {
                     reorderList
                 } else {
                     galleryGrid
                 }
             }
-            .navigationTitle("Galleries")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Galleries")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         withAnimation {

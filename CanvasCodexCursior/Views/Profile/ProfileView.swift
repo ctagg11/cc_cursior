@@ -69,8 +69,13 @@ struct ProfileView: View {
                 .padding(.horizontal)
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Profile")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingSettings = true

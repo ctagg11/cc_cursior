@@ -17,12 +17,12 @@ struct SignupFlow: View {
                     firstName: $preferences.firstName,
                     lastName: $preferences.lastName,
                     birthDate: $preferences.birthDate,
-                    gender: $preferences.gender
-                ) {
-                    withAnimation {
-                        currentStep += 1
+                    onNext: {
+                        withAnimation {
+                            currentStep += 1
+                        }
                     }
-                }
+                )
                 .tag(0)
                 
                 // Experience Level
@@ -109,5 +109,23 @@ struct SignupFlow: View {
                 dismiss()
             }
         }
+    }
+}
+
+#Preview {
+    SignupFlow(preferences: .constant(OnboardingPreferences()))
+        .environmentObject(AuthenticationService())
+}
+
+extension OnboardingPreferences {
+    static var sample: OnboardingPreferences {
+        var preferences = OnboardingPreferences()
+        preferences.firstName = "John"
+        preferences.lastName = "Doe"
+        preferences.birthDate = Date()
+        preferences.experienceLevel = .beginner
+        preferences.preferredMediums = [.watercolor, .acrylic]
+        preferences.goals = [.improveSkills, .trackProgress]
+        return preferences
     }
 } 

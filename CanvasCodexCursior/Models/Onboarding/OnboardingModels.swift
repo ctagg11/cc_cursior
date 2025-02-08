@@ -81,4 +81,34 @@ struct OnboardingSlide: Identifiable {
     let description: String
     let imageName: String
     let gradient: [Color]
+}
+
+// Add static slides to reduce duplication
+extension OnboardingSlide {
+    static let slides: [OnboardingSlide] = [
+        OnboardingSlide(
+            title: "Welcome to Canvas Codex",
+            description: "Your digital art companion for growth and inspiration",
+            imageName: "paintpalette.fill",
+            gradient: [Color.purple, Color.indigo]
+        ),
+        OnboardingSlide(
+            title: "Track Your Art Journey",
+            description: "Document your progress, organize references, and see your growth over time",
+            imageName: "rectangle.stack.fill",
+            gradient: [Color.teal, Color.mint]
+        ),
+        OnboardingSlide(
+            title: "AI-Enhanced Learning",
+            description: "Get personalized insights and break down techniques with AI assistance",
+            imageName: "sparkles.rectangle.stack.fill",
+            gradient: [Color.blue, Color.purple]
+        ),
+        OnboardingSlide(
+            title: "Join the Community",
+            description: "Connect with fellow artists, share your process, and get inspired",
+            imageName: "person.2.fill",
+            gradient: [Color.orange, Color.pink]
+        )
+    ]
 } 

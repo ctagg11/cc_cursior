@@ -9,9 +9,9 @@ struct StudioView: View {
     @State private var showingCreateSheet = false
     @State private var selectedSection = Section.projects
     
-    enum Section {
-        case projects
-        case components
+    enum Section: String {
+        case projects = "Works"
+        case components = "Components"
     }
     
     enum SortOption {
@@ -34,13 +34,85 @@ struct StudioView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Section Picker
-                Picker("Section", selection: $selectedSection) {
-                    Text("Works in Progress").tag(Section.projects)
-                    Text("Art Components").tag(Section.components)
+                // Header Section with Tabs
+                VStack(spacing: 0) {
+                    // Section Tabs
+                    HStack(spacing: 0) {
+                        ForEach([Section.projects, Section.components], id: \.self) { section in
+                            Button {
+                                withAnimation {
+                                    selectedSection = section
+                                }
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Text(section.rawValue)
+                                        .font(.headline)
+                                        .foregroundColor(selectedSection == section ? .primary : .secondary)
+                                    
+                                    // Underline indicator
+                                    Rectangle()
+                                        .fill(selectedSection == section ? Color.orange : Color.clear)
+                                        .frame(height: 2)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    
+                    // Search Bar
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        
+                        TextField(
+                            selectedSection == .projects ? "Search works" : "Search components",
+                            text: $searchText
+                        )
+                        .textFieldStyle(.plain)
+                        
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    
+                    Divider()
                 }
-                .pickerStyle(.segmented)
-                .padding()
+                .background(Color(.systemBackground))
+                
+                // Quick Filters
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        FilterChip(
+                            icon: "paintpalette",
+                            title: "All",
+                            isSelected: !showActiveOnly
+                        ) {
+                            showActiveOnly = false
+                        }
+                        
+                        FilterChip(
+                            icon: "clock",
+                            title: "Active",
+                            isSelected: showActiveOnly
+                        ) {
+                            showActiveOnly = true
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
                 
                 // Content
                 if selectedSection == .projects {
@@ -49,22 +121,13 @@ struct StudioView: View {
                     componentsContent
                 }
             }
-            .navigationTitle("Studio")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Menu {
-                        Picker("Sort By", selection: $sortOption) {
-                            Label("Last Activity", systemImage: "clock").tag(SortOption.lastActivity)
-                            Label("Creation Date", systemImage: "calendar").tag(SortOption.creationDate)
-                            Label("Name", systemImage: "textformat").tag(SortOption.name)
-                        }
-                        
-                        Toggle("Show Active Only", isOn: $showActiveOnly)
-                    } label: {
-                        Label("Sort & Filter", systemImage: "line.3.horizontal.decrease.circle")
-                    }
+                ToolbarItem(placement: .principal) {
+                    Text("Studio")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                 }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingCreateSheet = true
@@ -73,7 +136,6 @@ struct StudioView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search projects")
             .sheet(isPresented: $showingCreateSheet) {
                 if selectedSection == .projects {
                     CreateProjectSheet()
@@ -169,5 +231,27 @@ struct StudioView: View {
     private func toggleProjectCompletion(_ project: ProjectEntity) {
         project.isCompleted.toggle()
         try? viewContext.save()
+    }
+}
+
+// Add this helper view for filter chips
+struct FilterChip: View {
+    let icon: String
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.orange.opacity(0.2) : Color(.systemGray6))
+            .foregroundColor(isSelected ? .orange : .primary)
+            .clipShape(Capsule())
+        }
     }
 } 
