@@ -1,18 +1,31 @@
 import SwiftUI
+import UIKit
 
 struct UploadOptionsSheet: View {
     @Binding var isPresented: Bool
     @Binding var uploadType: UploadType?
     @Binding var showingScanner: Bool
+    @Binding var showingImagePicker: Bool
+    let source: UploadSource
     
     var body: some View {
         NavigationStack {
             List {
                 Button {
+                    print("🎯 UploadOptionsSheet: Selected .newArtwork")
+                    print("📸 Source: \(source)")
                     uploadType = .newArtwork
                     isPresented = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        showingScanner = true
+                        print("⏱️ Showing picker/scanner after delay")
+                        switch source {
+                        case .scanner:
+                            print("📷 Showing scanner")
+                            showingScanner = true
+                        case .photoLibrary:
+                            print("🖼️ Showing image picker")
+                            showingImagePicker = true
+                        }
                     }
                 } label: {
                     UploadOptionRow(
@@ -26,7 +39,12 @@ struct UploadOptionsSheet: View {
                     uploadType = .workInProgress
                     isPresented = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        showingScanner = true
+                        switch source {
+                        case .scanner:
+                            showingScanner = true
+                        case .photoLibrary:
+                            showingImagePicker = true
+                        }
                     }
                 } label: {
                     UploadOptionRow(

@@ -1,0 +1,48 @@
+---
+description: canvas_codex_rules
+globs: 
+---
+
+# Your rule content
+
+start each answer by saying "hello"
+
+Prefer simplicity over complexity
+
+Prefer readability over brevity
+
+Prefer clarity over brevity
+
+Prefer simplicity over complexity
+
+Don’t overengineer
+
+Minimal Changes
+
+Modify only what's necessary
+
+Preserve existing code and comments. 
+
+Delete code only when absolutely required
+
+Do not delete comments that don’t relate to what you’re currently working on
+
+Ignore files in the OLD PAGES directory unless otherwise specified
+
+File Management
+
+Assume files exist first
+
+Check codebase before creating new files
+
+Preserve content when moving files
+
+Context Awareness
+
+Remember full codebase exists
+
+Don't recreate existing code
+
+Always look for existing code that might be relevant
+
+Show changes with context:

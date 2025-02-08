@@ -16,4 +16,9 @@ enum UploadForm: Identifiable {
         case .workInProgress: return "workInProgress"
         }
     }
+}
+
+enum UploadSource {
+    case scanner
+    case photoLibrary
 } 

@@ -1,21 +1,28 @@
 import SwiftUI
 import WeScan
+import UIKit
 
 struct UploadView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingScanner = false
+    @State private var showingImagePicker = false
     @State private var showingOptions = false
     @State private var uploadType: UploadType?
     @State private var identifiableImage: IdentifiableImage?
     @State private var activeForm: UploadForm?
+    @State private var selectedImage: UIImage?
+    @State private var uploadSource: UploadSource = .scanner
     @Binding var selectedTab: Int
     
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: true) {
                 VStack(spacing: 32) {
                     // Main scan button
-                    Button(action: { showingOptions = true }) {
+                    Button(action: {
+                        uploadSource = .scanner
+                        showingOptions = true
+                    }) {
                         VStack(spacing: 16) {
                             Image(systemName: "doc.viewfinder")  // Changed icon to better match scanning
                                 .font(.system(size: 44))
@@ -31,27 +38,30 @@ struct UploadView: View {
                     }
                     .shadow(radius: 5)
                     .padding(.top, 20)
-                    
                     // Divider text
                     Text("or")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
                     
                     // Photo library button
                     Button(action: {
-                        // TODO: Add photo picker functionality
+                        uploadSource = .photoLibrary
+                        showingOptions = true
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 16))
                             Text("Choose from Photo Library")
+                                .font(.subheadline)
                         }
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(minWidth: 200, minHeight: 50)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.indigo.opacity(0.8))
+                                .fill(Color.indigo.opacity(0.6))
                         )
                     }
                     .shadow(radius: 3)
@@ -80,19 +90,15 @@ struct UploadView: View {
                 }
                 .padding()
             }
+            .navigationTitle("Upload")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Upload")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                }
-            }
             .sheet(isPresented: $showingOptions) {
                 UploadOptionsSheet(
                     isPresented: $showingOptions,
                     uploadType: $uploadType,
-                    showingScanner: $showingScanner
+                    showingScanner: $showingScanner,
+                    showingImagePicker: $showingImagePicker,
+                    source: uploadSource
                 )
             }
             .sheet(isPresented: $showingScanner) {
@@ -105,17 +111,48 @@ struct UploadView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showingImagePicker) {
+                NavigationStack {
+                    ImagePicker(selectedImage: $selectedImage)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") {
+                                    showingImagePicker = false
+                                }
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Add") {
+                                    if let image = selectedImage {
+                                        handleCapturedImage(type: uploadType ?? .newArtwork, image: image)
+                                        selectedImage = nil
+                                        showingImagePicker = false
+                                    }
+                                }
+                                .disabled(selectedImage == nil)
+                            }
+                        }
+                }
+            }
             .sheet(item: $activeForm) { form in
-                switch form {
-                case .workInProgress(let image):
-                    WorkInProgressForm(image: image)
-                case .newArtwork(let image):
-                    EmptyView()
+                Group {
+                    let _ = print("📝 Showing form: \(String(describing: form))")
+                    switch form {
+                    case .workInProgress(let image):
+                        let _ = print("🏗️ Showing WorkInProgressForm")
+                        WorkInProgressForm(image: image)
+                    case .newArtwork(let image):
+                        let _ = print("�� Showing NewArtworkForm")
+                        NewArtworkForm(image: image) {
+                            self.identifiableImage = nil
+                            selectedTab = 1
+                        }
+                    }
                 }
             }
             .fullScreenCover(item: $identifiableImage) { wrapper in
+                let _ = print("🖼️ Showing fullscreen NewArtworkForm")
                 NewArtworkForm(image: wrapper.image) {
-                    identifiableImage = nil
+                    self.identifiableImage = nil
                     selectedTab = 1
                 }
             }
@@ -123,12 +160,18 @@ struct UploadView: View {
     }
     
     private func handleCapturedImage(type: UploadType, image: UIImage) {
+        print("🎯 Handling captured image for type: \(type)")
+        
         switch type {
         case .newArtwork:
+            print("🎨 Setting identifiableImage")
             identifiableImage = IdentifiableImage(image: image)
         case .workInProgress:
+            print("🏗️ Setting activeForm")
             activeForm = .workInProgress(image)
         }
+        
+        print("📊 Updated state - activeForm: \(String(describing: activeForm)), identifiableImage: \(String(describing: identifiableImage))")
     }
     
     private func showNewArtworkForm(with image: UIImage) {
@@ -137,10 +180,9 @@ struct UploadView: View {
 }
 
 #Preview("Upload View") {
-    UploadView(selectedTab: .constant(2)) // 2 represents the upload tab
+    UploadView(selectedTab: .constant(2))
 }
 
-// Add multiple previews to see different states
 #Preview("Upload View - Dark Mode") {
     UploadView(selectedTab: .constant(2))
         .preferredColorScheme(.dark)
@@ -148,23 +190,6 @@ struct UploadView: View {
 
 #Preview("Upload View - Compact") {
     UploadView(selectedTab: .constant(2))
+        .previewDisplayName("Compact")
         .previewLayout(.sizeThatFits)
-}
-
-// Preview helper for testing different states
-struct UploadView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            NavigationStack {
-                UploadView(selectedTab: .constant(2))
-            }
-            .previewDisplayName("Default")
-            
-            NavigationStack {
-                UploadView(selectedTab: .constant(2))
-            }
-            .environment(\.sizeCategory, .extraExtraLarge)
-            .previewDisplayName("Large Text")
-        }
-    }
 } 
