@@ -239,21 +239,6 @@ struct CreateProjectSheet: View {
     }
 }
 
-// Simplified preview for faster loading
-#Preview("Basic") {
-    CreateProjectSheet()
-        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-}
-
-// Sample data for previews
-extension PersistenceController {
-    static var preview: PersistenceController = {
-        let result = PersistenceController(inMemory: true)
-        let viewContext = result.container.viewContext
-        // Add sample data here if needed
-        return result
-    }()
-}
 
 // Color chip view - for displaying individual colors
 struct PaintColorChip: View {

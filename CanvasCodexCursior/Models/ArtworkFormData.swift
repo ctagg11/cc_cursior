@@ -13,6 +13,8 @@ struct ArtworkFormData {
     var completionDate: Date = Date()
     var isPublic: Bool = false
     var referenceImageData: Data?
+    var description: String = ""
+    var isMuted: Bool = false
     
     var hasDimensions: Bool {
         width > 0 && height > 0 && (dimensionType == .twoDimensional || depth > 0)

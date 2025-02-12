@@ -43,7 +43,12 @@ class ImageManager {
     }
     
     private func getDocumentsDirectory() -> URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        // Try to use app group container first
+        if let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.TagArt.CanvasCodexCursior") {
+            return groupURL
+        }
+        // Fall back to documents directory if app group is not available
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
     
     func deleteImage(fileName: String, category: Category) {

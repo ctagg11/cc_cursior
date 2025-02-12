@@ -111,23 +111,3 @@ struct StarRating: View {
     }
 }
 
-#Preview("Tag Indicator") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-        
-        TagIndicator(tag: {
-            let tag = ComponentTagEntity(context: PersistenceController.preview.container.viewContext)
-            tag.id = UUID()
-            tag.name = "Sample Tag"
-            tag.type = .subject
-            tag.locationX = 200
-            tag.locationY = 200
-            tag.rating1 = 4
-            tag.rating2 = 3
-            tag.notes = "This is a sample note"
-            return tag
-        }())
-    }
-    .frame(width: 400, height: 400)
-    .preferredColorScheme(.dark)
-} 
