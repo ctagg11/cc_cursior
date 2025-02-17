@@ -124,8 +124,9 @@ struct GalleryView: View {
                         .foregroundStyle(.primary)
                         
                         ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(spacing: 12) {
-                                if let artworks = gallery.artworks?.allObjects as? [ArtworkEntity] {
+                            LazyHStack(alignment: .top, spacing: 24) {
+                                if let artworks = (gallery.artworks?.allObjects as? [ArtworkEntity])?
+                                    .sorted(by: { $0.sortOrder < $1.sortOrder }) {
                                     ForEach(artworks) { artwork in
                                         NavigationLink(destination: ArtworkDetailView(artwork: artwork)) {
                                             ArtworkThumbnail(artwork: artwork)
@@ -147,29 +148,50 @@ struct ArtworkThumbnail: View {
     let artwork: ArtworkEntity
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if let fileName = artwork.imageFileName,
-               let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 250, maxHeight: 250)
-            } else {
-                Rectangle()
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 250, height: 250)
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-            }
+        ZStack(alignment: .bottomLeading) {
+            // Background container
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.1))
             
+            // Artwork or placeholder
+            Group {
+                if let fileName = artwork.imageFileName,
+                   let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "photo")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 32))
+                }
+            }
+            .frame(width: 250, height: 250)
+            .clipped()
+            
+            // Title overlay
             Text(artwork.name ?? "")
                 .font(.subheadline)
                 .lineLimit(2)
                 .foregroundStyle(.primary)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    Rectangle()
+                        .fill(.background.opacity(0.8))
+                }
         }
-        .frame(width: 250)
+        .frame(width: 250, height: 250)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// Preference key to track the actual image frame
+struct ImageFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
     }
 }
 

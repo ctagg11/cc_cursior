@@ -20,6 +20,41 @@ struct ArtworkDetailView: View {
         )
     }
     
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 4) {
+                Text(artwork.name ?? "Untitled")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .italic()
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                
+                if let completionDate = artwork.completionDate {
+                    Text("(\(completionDate.formatted(.dateTime.month())) \(completionDate.formatted(.dateTime.year())))")
+                        .font(.title)
+                        .fontWeight(.regular)
+                        .italic()
+                }
+            }
+            
+            if let medium = artwork.medium {
+                Text(medium)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            
+            if let notes = artwork.inspirationNotes, !notes.isEmpty {
+                Text(notes)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.horizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
@@ -44,28 +79,20 @@ struct ArtworkDetailView: View {
                         }
                 }
                 
-                // Artwork Title
-                Text(artwork.name ?? "Untitled")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.leading)
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Gallery-style Label Section
+                titleSection
                 
-                // Artwork Information
+                // Detailed Information
                 VStack(spacing: 20) {
-                    // Basic Info Section
+                    // Details Section
                     InfoSection(title: "Details") {
-                        InfoRow(label: "Medium", value: artwork.medium ?? "Not specified")
                         if let dimensions = artwork.dimensions {
                             InfoRow(label: "Dimensions", value: dimensions)
                         }
                         if let startDate = artwork.startDate {
                             InfoRow(label: "Started", value: startDate.formatted(date: .abbreviated, time: .omitted))
                         }
-                        if let completionDate = artwork.completionDate {
-                            InfoRow(label: "Completed", value: completionDate.formatted(date: .abbreviated, time: .omitted))
-                        }
+                        InfoRow(label: "Completed", value: artwork.completionDate?.formatted(date: .abbreviated, time: .omitted) ?? "")
                     }
                     
                     // Reference Image Section
@@ -102,14 +129,6 @@ struct ArtworkDetailView: View {
                                     }
                                 }
                             }
-                        }
-                    }
-                    
-                    // Notes Section
-                    if let notes = artwork.inspirationNotes, !notes.isEmpty {
-                        InfoSection(title: "Inspiration & Notes") {
-                            Text(notes)
-                                .foregroundStyle(.secondary)
                         }
                     }
                     

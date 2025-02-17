@@ -52,11 +52,11 @@ struct UploadView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: "photo.on.rectangle")
-                                .font(.system(size: 16))
+                                .font(.system(size: 14))
                             Text("Choose from Photo Library")
-                                .font(.subheadline)
+                                .font(.callout)
                         }
-                        .font(.headline)
+                        .font(.subheadline)
                         .foregroundStyle(.white)
                         .frame(minWidth: 200, minHeight: 50)
                         .background(

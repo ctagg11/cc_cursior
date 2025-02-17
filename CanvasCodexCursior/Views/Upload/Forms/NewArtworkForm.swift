@@ -303,6 +303,9 @@ struct NewArtworkForm: View {
                                     Text("Add start date")
                                         .foregroundStyle(.secondary)
                                 }
+                                .onChange(of: hasStartDate) { oldValue, newValue in
+                                    formData.hasStartDate = newValue
+                                }
                                 
                                 if hasStartDate {
                                     DatePicker("Started on", selection: $formData.startDate, displayedComponents: .date)

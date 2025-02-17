@@ -15,6 +15,7 @@ struct ArtworkFormData {
     var referenceImageData: Data?
     var description: String = ""
     var isMuted: Bool = false
+    var hasStartDate: Bool = false
     
     var hasDimensions: Bool {
         width > 0 && height > 0 && (dimensionType == .twoDimensional || depth > 0)
@@ -55,7 +56,7 @@ struct ArtworkFormData {
     var isValid: Bool {
         !name.isEmpty && 
         !galleryId.isEmpty && 
-        startDate <= completionDate
+        (!hasStartDate || startDate <= completionDate)
     }
     
     private func validateDimension(_ value: Double) -> Double {

@@ -5,18 +5,7 @@ struct ZoomableImageView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var scale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
-    @State private var dragOffset: CGSize = .zero
     @GestureState private var gestureScale: CGFloat = 1.0
-    
-    private var imageOpacity: CGFloat {
-        let height = abs(dragOffset.height)
-        return max(0, min(1, 1 - (height / 1000)))
-    }
-    
-    private var backgroundOpacity: CGFloat {
-        let height = abs(dragOffset.height)
-        return max(0, min(1, 1 - (height / 500)))
-    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -36,29 +25,10 @@ struct ZoomableImageView: View {
             
             let drag = DragGesture()
                 .onChanged { value in
-                    if scale == 1 {
-                        // When not zoomed, track vertical drag for dismiss gesture
-                        dragOffset = CGSize(
-                            width: 0,
-                            height: value.translation.height
-                        )
-                    } else {
-                        // When zoomed, allow panning
+                    if scale > 1 {
                         let newX = offset.width + value.translation.width
                         let newY = offset.height + value.translation.height
                         offset = CGSize(width: newX, height: newY)
-                    }
-                }
-                .onEnded { value in
-                    if scale == 1 {
-                        // Dismiss if dragged down far enough
-                        if abs(dragOffset.height) > 200 {
-                            dismiss()
-                        } else {
-                            withAnimation(.spring()) {
-                                dragOffset = .zero
-                            }
-                        }
                     }
                 }
             
@@ -78,14 +48,13 @@ struct ZoomableImageView: View {
                 .resizable()
                 .scaledToFit()
                 .scaleEffect(scale * gestureScale)
-                .offset(scale == 1 ? dragOffset : offset)
-                .opacity(imageOpacity)
+                .offset(offset)
                 .gesture(SimultaneousGesture(magnification, drag))
                 .gesture(doubleTap)
                 .animation(.spring(response: 0.3), value: scale)
                 .frame(maxWidth: geometry.size.width, maxHeight: geometry.size.height)
         }
-        .background(Color.black.opacity(backgroundOpacity))
+        .background(Color.black)
         .ignoresSafeArea()
         .overlay(alignment: .topTrailing) {
             Button {
@@ -96,7 +65,6 @@ struct ZoomableImageView: View {
                     .foregroundStyle(.white)
                     .padding()
             }
-            .opacity(dragOffset == .zero ? 1 : 0)
         }
     }
-} 
+}
