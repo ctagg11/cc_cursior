@@ -10,9 +10,10 @@ struct ReferenceImageView: View {
                let image = ImageManager.shared.loadImage(fileName: fileName, category: .reference) {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFit()
-                    .frame(height: 150)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: UIScreen.main.bounds.height * 0.4)
+                    .clipped()
                     .onTapGesture {
                         showingFullscreen = true
                     }
