@@ -17,7 +17,7 @@ struct ReferenceImageView: View {
                         showingFullscreen = true
                     }
                     .fullScreenCover(isPresented: $showingFullscreen) {
-                        ZoomableImageView(image: image)
+                        ZoomableImageView(image: Image(uiImage: image))
                     }
             }
             

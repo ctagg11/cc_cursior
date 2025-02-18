@@ -1,6 +1,7 @@
 import SwiftUI
 import FirebaseAuth
 import CoreData
+import PhotosUI
 
 struct ProfileView: View {
     @EnvironmentObject private var authService: AuthenticationService
@@ -10,16 +11,57 @@ struct ProfileView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var showingResetConfirmation = false
+    @State private var showingImagePicker = false
+    @State private var selectedImage: PhotosPickerItem?
+    @State private var profileImage: Image?
+    @State private var showingAllArtwork = false
+    
+    // Fetch Requests for stats
+    @FetchRequest(
+        entity: ArtworkEntity.entity(),
+        sortDescriptors: []
+    ) private var artworks: FetchedResults<ArtworkEntity>
+    
+    @FetchRequest(
+        entity: GalleryEntity.entity(),
+        sortDescriptors: []
+    ) private var galleries: FetchedResults<GalleryEntity>
+    
+    @FetchRequest(
+        entity: ProjectEntity.entity(),
+        sortDescriptors: []
+    ) private var projects: FetchedResults<ProjectEntity>
+    
+    @FetchRequest(
+        entity: ProjectUpdateEntity.entity(),
+        sortDescriptors: []
+    ) private var updates: FetchedResults<ProjectUpdateEntity>
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Profile Header
+                    // Profile Header with Photo
                     VStack(spacing: 16) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 80))
-                            .foregroundStyle(AppTheme.Colors.primary)
+                        PhotosPicker(selection: $selectedImage, matching: .images) {
+                            if let profileImage {
+                                profileImage
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(AppTheme.Colors.primary, lineWidth: 2))
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 80))
+                                    .foregroundStyle(AppTheme.Colors.primary)
+                            }
+                        }
+                        .onChange(of: selectedImage) { oldValue, newValue in
+                            Task {
+                                await loadProfileImage()
+                            }
+                        }
                         
                         VStack(spacing: 4) {
                             Text(authService.user?.email ?? "Artist")
@@ -34,37 +76,28 @@ struct ProfileView: View {
                     // Stats Section
                     FormSection(title: "Your Activity") {
                         StatsGrid(stats: [
-                            ("Artworks", "0"),
-                            ("Galleries", "0"),
-                            ("Projects", "0"),
-                            ("Updates", "0")
+                            ("Artworks", "\(artworks.count)"),
+                            ("Galleries", "\(galleries.count)"),
+                            ("Projects", "\(projects.count)"),
+                            ("Updates", "\(updates.count)")
                         ])
                     }
                     
-                    // Quick Actions
-                    FormSection(title: "Quick Actions") {
-                        VStack(spacing: 0) {
-                            NavigationLink {
-                                Text("Your Galleries")
-                            } label: {
-                                ListRow(
-                                    title: "Your Galleries",
-                                    subtitle: "View and manage your gallery collections",
-                                    icon: "photo.stack"
-                                )
-                            }
-                            
-                            NavigationLink {
-                                Text("Projects")
-                            } label: {
-                                ListRow(
-                                    title: "Active Projects",
-                                    subtitle: "Track your works in progress",
-                                    icon: "paintpalette"
-                                )
-                            }
+                    // All Artwork Button
+                    Button {
+                        showingAllArtwork = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "photo.stack")
+                            Text("View All Artwork")
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(AppTheme.Colors.primary)
+                        .foregroundColor(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .padding(.horizontal)
                 }
                 .padding(.horizontal)
             }
@@ -83,47 +116,33 @@ struct ProfileView: View {
                         Image(systemName: "gear")
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingResetConfirmation = true
-                    } label: {
-                        Image(systemName: "arrow.counterclockwise.circle")
-                    }
-                }
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(showingSettings: $showingSettings)
+            }
+            .navigationDestination(isPresented: $showingAllArtwork) {
+                AllArtworkView()
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK") {}
             } message: {
                 Text(errorMessage)
             }
-            .alert("Reset App", isPresented: $showingResetConfirmation) {
-                Button("Cancel", role: .cancel) { }
-                Button("Reset", role: .destructive) {
-                    resetApp()
-                }
-            } message: {
-                Text("This will reset the app to its initial state. You'll need to sign in again.")
-            }
         }
     }
     
-    private func resetApp() {
-        // Reset onboarding
-        hasSeenOnboarding = false
-        
-        // Sign out
-        try? Auth.auth().signOut()
-        
-        // Clear Core Data
-        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = GalleryEntity.fetchRequest()
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        try? viewContext.execute(deleteRequest)
-        
-        // Save context
-        try? viewContext.save()
+    private func loadProfileImage() async {
+        guard let selectedImage else { return }
+        do {
+            if let data = try await selectedImage.loadTransferable(type: Data.self),
+               let uiImage = UIImage(data: data) {
+                self.profileImage = Image(uiImage: uiImage)
+                // TODO: Save profile image to storage
+            }
+        } catch {
+            errorMessage = "Failed to load profile image"
+            showingError = true
+        }
     }
 }
 
@@ -238,5 +257,50 @@ struct StatsGrid: View {
                 .cornerRadius(12)
             }
         }
+    }
+}
+
+// New View for displaying all artwork
+struct AllArtworkView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @FetchRequest(
+        entity: ArtworkEntity.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \ArtworkEntity.createdAt, ascending: false)]
+    ) private var artworks: FetchedResults<ArtworkEntity>
+    
+    private let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
+    var body: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(artworks) { artwork in
+                    NavigationLink(destination: ArtworkDetailView(artwork: artwork)) {
+                        if let fileName = artwork.imageFileName,
+                           let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 100, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        } else {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.gray.opacity(0.2))
+                                .frame(width: 100, height: 100)
+                                .overlay {
+                                    Image(systemName: "photo")
+                                        .foregroundStyle(.secondary)
+                                }
+                        }
+                    }
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("All Artwork")
+        .navigationBarTitleDisplayMode(.inline)
     }
 } 

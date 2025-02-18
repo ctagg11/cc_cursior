@@ -1,108 +1,116 @@
 import SwiftUI
-import UniformTypeIdentifiers
+import CoreData
 
-struct GalleryDetailView: View {
+public struct GalleryDetailView: View {
     let gallery: GalleryEntity
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
-    
     @State private var showingDeleteConfirmation = false
-    @State private var isDragging = false
-    @GestureState private var isLongPressed = false
     
-    // Calculate item size based on screen width minus padding and spacing
-    private var gridItemSize: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let totalPadding: CGFloat = 32  // 16 points padding on each side
-        let totalSpacing: CGFloat = 32   // 16 points spacing between items
-        return (screenWidth - totalPadding - totalSpacing) / 3
+    private let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
+    
+    public init(gallery: GalleryEntity) {
+        self.gallery = gallery
     }
     
-    // Grid layout with fixed size items
-    private var columns: [GridItem] {
-        [
-            GridItem(.fixed(gridItemSize), spacing: 16),
-            GridItem(.fixed(gridItemSize), spacing: 16),
-            GridItem(.fixed(gridItemSize), spacing: 16)
-        ]
-    }
-    
-    var body: some View {
+    public var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
+            VStack(spacing: 24) {
+                // Gallery Info Header
+                VStack(spacing: 8) {
+                    if let artworks = gallery.artworks?.allObjects as? [ArtworkEntity], !artworks.isEmpty,
+                       let firstArtwork = artworks.first,
+                       let fileName = firstArtwork.imageFileName,
+                       let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 200)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(alignment: .bottomLeading) {
+                                Text(gallery.name ?? "Gallery")
+                                    .font(.title2.bold())
+                                    .foregroundStyle(.white)
+                                    .padding()
+                                    .background(
+                                        LinearGradient(
+                                            colors: [.black.opacity(0.7), .clear],
+                                            startPoint: .bottom,
+                                            endPoint: .top
+                                        )
+                                    )
+                            }
+                    } else {
+                        Text(gallery.name ?? "Gallery")
+                            .font(.title2.bold())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                    }
+                    
+                    Text("\(gallery.artworks?.count ?? 0) artworks")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+                }
+                
+                // Artwork Grid
                 if let artworks = (gallery.artworks?.allObjects as? [ArtworkEntity])?
                     .sorted(by: { $0.sortOrder < $1.sortOrder }) {
-                    ForEach(artworks) { artwork in
-                        artworkView(artwork: artwork, allArtworks: artworks)
-                            .scaleEffect(isLongPressed ? 0.95 : 1.0)
-                            .animation(.spring(duration: 0.3), value: isLongPressed)
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(artworks) { artwork in
+                            NavigationLink(destination: ArtworkDetailView(artwork: artwork)) {
+                                if let fileName = artwork.imageFileName,
+                                   let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                } else {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(width: 100, height: 100)
+                                        .overlay {
+                                            Image(systemName: "photo")
+                                                .foregroundStyle(.secondary)
+                                        }
+                                }
+                            }
+                        }
                     }
+                    .padding()
+                } else {
+                    ContentUnavailableView(
+                        "No Artwork",
+                        systemImage: "photo.stack",
+                        description: Text("Add some artwork to this gallery to get started")
+                    )
+                    .padding()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
         }
-        .navigationTitle(gallery.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { toolbarContent }
+        .toolbar {
+            ToolbarItem(placement: .destructiveAction) {
+                Button(role: .destructive) {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+            }
+        }
         .alert("Delete Gallery?", isPresented: $showingDeleteConfirmation) {
-            deleteAlertButtons
-        } message: {
-            Text("This will only remove the gallery, not the artwork within it.")
-        }
-    }
-    
-    private func artworkView(artwork: ArtworkEntity, allArtworks: [ArtworkEntity]) -> some View {
-        NavigationLink(destination: ArtworkDetailView(artwork: artwork)) {
-            ArtworkThumbnail(artwork: artwork)
-                .frame(width: gridItemSize, height: gridItemSize)
-                .clipped()
-        }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .updating($isLongPressed) { currentState, gestureState, _ in
-                    gestureState = currentState
-                    if currentState {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                    }
-                }
-        )
-        .draggable(TransferableID(id: artwork.id ?? UUID()))
-        .onDrop(of: [UTType.plainText], delegate: DropViewDelegate(
-            item: artwork,
-            items: allArtworks,
-            viewContext: viewContext,
-            onDragStarted: {
-                withAnimation {
-                    isDragging = true
-                }
-            },
-            onDragEnded: {
-                withAnimation {
-                    isDragging = false
-                }
-            }
-        ))
-    }
-    
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .destructiveAction) {
-            Button(role: .destructive) {
-                showingDeleteConfirmation = true
-            } label: {
-                Image(systemName: "trash")
-                    .frame(width: 44, height: 44)
-            }
-        }
-    }
-    
-    private var deleteAlertButtons: some View {
-        Group {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 deleteGallery()
             }
+        } message: {
+            Text("This will only remove the gallery, not the artwork within it.")
         }
     }
     

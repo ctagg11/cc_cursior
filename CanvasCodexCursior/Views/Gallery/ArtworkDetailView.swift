@@ -1,9 +1,12 @@
 import SwiftUI
+import CoreData
+import UIKit
 
-struct ArtworkDetailView: View {
+public struct ArtworkDetailView: View {
     let artwork: ArtworkEntity
-    @State private var image: UIImage?
     @State private var showingDeleteConfirmation = false
+    @State private var showingGallerySheet = false
+    @State private var showingCreateGallery = false
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @State private var showingFullscreen = false
@@ -11,7 +14,15 @@ struct ArtworkDetailView: View {
     @State private var showingTagMode = false
     @FetchRequest private var tags: FetchedResults<ComponentTagEntity>
     
-    init(artwork: ArtworkEntity) {
+    // Fetch request for available galleries
+    @FetchRequest(
+        entity: GalleryEntity.entity(),
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \GalleryEntity.name, ascending: true)
+        ]
+    ) private var galleries: FetchedResults<GalleryEntity>
+    
+    public init(artwork: ArtworkEntity) {
         self.artwork = artwork
         _tags = FetchRequest(
             entity: ComponentTagEntity.entity(),
@@ -55,20 +66,20 @@ struct ArtworkDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 // Artwork Image
                 if let fileName = artwork.imageFileName,
-                   let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
-                    Image(uiImage: image)
+                   let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                    Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFit()
                         .onTapGesture {
                             showingFullscreen = true
                         }
                         .fullScreenCover(isPresented: $showingFullscreen) {
-                            ZoomableImageView(image: image)
+                            ZoomableImageView(image: Image(uiImage: uiImage))
                         }
                 } else {
                     RoundedRectangle(cornerRadius: 12)
@@ -109,27 +120,31 @@ struct ArtworkDetailView: View {
                                 }
                         }
                         .fullScreenCover(isPresented: $showingReferenceFullscreen) {
-                            ZoomableImageView(image: referenceImage)
+                            ZoomableImageView(image: Image(uiImage: referenceImage))
                         }
                     }
                     
                     // Galleries Section
-                    if let galleries = artwork.galleries?.allObjects as? [GalleryEntity], !galleries.isEmpty {
+                    if let artworkGalleries = artwork.galleries?.allObjects as? [GalleryEntity],
+                       !artworkGalleries.isEmpty {
                         InfoSection(title: "Galleries") {
-                            ForEach(galleries) { gallery in
-                                NavigationLink {
-                                    GalleryDetailView(gallery: gallery)
-                                } label: {
-                                    HStack {
-                                        Text(gallery.name ?? "")
-                                            .foregroundStyle(.primary)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundStyle(.secondary)
+                            VStack(spacing: 12) {
+                                ForEach(artworkGalleries.sorted(by: { $0.name ?? "" < $1.name ?? "" })) { gallery in
+                                    NavigationLink {
+                                        GalleryDetailView(gallery: gallery)
+                                    } label: {
+                                        HStack {
+                                            Text(gallery.name ?? "")
+                                                .foregroundStyle(.primary)
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
                                 }
                             }
                         }
+                        .padding(.horizontal)
                     }
                     
                     // References Section
@@ -166,6 +181,30 @@ struct ArtworkDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
+                    Menu {
+                        if galleries.isEmpty {
+                            Button {
+                                showingCreateGallery = true
+                            } label: {
+                                Label("Create New Gallery", systemImage: "folder.badge.plus")
+                            }
+                        } else {
+                            Button {
+                                showingGallerySheet = true
+                            } label: {
+                                Label("Add to Gallery", systemImage: "folder.badge.plus")
+                            }
+                            
+                            Button {
+                                showingCreateGallery = true
+                            } label: {
+                                Label("Create New Gallery", systemImage: "folder.badge.plus")
+                            }
+                        }
+                    } label: {
+                        Label("Add to Gallery", systemImage: "folder")
+                    }
+                    
                     Button(role: .destructive) {
                         showingDeleteConfirmation = true
                     } label: {
@@ -184,16 +223,83 @@ struct ArtworkDetailView: View {
         } message: {
             Text("This will permanently delete this artwork and its associated data.")
         }
-        .onAppear {
-            if let fileName = artwork.imageFileName {
-                image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork)
-            }
-        }
         .fullScreenCover(isPresented: $showingTagMode) {
             if let fileName = artwork.imageFileName,
-               let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
-                FullScreenTagMode(image: image, artwork: artwork)
+               let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                FullScreenTagMode(image: uiImage, artwork: artwork)
             }
+        }
+        .sheet(isPresented: $showingCreateGallery) {
+            CreateGallerySheet { gallery in
+                addToGallery(gallery)
+            }
+        }
+        .sheet(isPresented: $showingGallerySheet) {
+            NavigationStack {
+                List {
+                    ForEach(galleries) { gallery in
+                        let isInGallery = (artwork.galleries?.contains(gallery) ?? false)
+                        Button {
+                            if isInGallery {
+                                removeFromGallery(gallery)
+                            } else {
+                                addToGallery(gallery)
+                            }
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(gallery.name ?? "")
+                                        .foregroundStyle(.primary)
+                                    Text("\(gallery.artworks?.count ?? 0) artworks")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                if isInGallery {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Choose Gallery")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            showingGallerySheet = false
+                        }
+                    }
+                    
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showingGallerySheet = false
+                            showingCreateGallery = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func addToGallery(_ gallery: GalleryEntity) {
+        if let artworks = gallery.artworks?.mutableCopy() as? NSMutableSet {
+            artworks.add(artwork)
+            gallery.artworks = artworks
+            try? viewContext.save()
+        }
+    }
+    
+    private func removeFromGallery(_ gallery: GalleryEntity) {
+        if let artworks = gallery.artworks?.mutableCopy() as? NSMutableSet {
+            artworks.remove(artwork)
+            gallery.artworks = artworks
+            try? viewContext.save()
         }
     }
     
@@ -433,8 +539,6 @@ struct TagLegendItem: View {
         .padding(.horizontal, 8)
     }
 }
-
-
 
 #Preview("Tag Mode") {
     FullScreenTagMode(

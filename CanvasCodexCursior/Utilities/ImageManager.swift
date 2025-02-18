@@ -1,9 +1,9 @@
 import UIKit
 
-class ImageManager {
-    static let shared = ImageManager()
+public class ImageManager {
+    public static let shared = ImageManager()
     
-    enum Category: String {
+    public enum Category: String {
         case artwork
         case reference
         case projectUpdate
@@ -12,7 +12,7 @@ class ImageManager {
     
     private init() {}
     
-    func saveImage(_ image: UIImage, category: Category) -> String? {
+    public func saveImage(_ image: UIImage, category: Category) -> String? {
         let fileName = UUID().uuidString
         let fileURL = getDocumentsDirectory()
             .appendingPathComponent(category.rawValue)
@@ -31,7 +31,7 @@ class ImageManager {
         return nil
     }
     
-    func loadImage(fileName: String, category: Category) -> UIImage? {
+    public func loadImage(fileName: String, category: Category) -> UIImage? {
         let fileURL = getDocumentsDirectory()
             .appendingPathComponent(category.rawValue)
             .appendingPathComponent(fileName)
@@ -51,7 +51,7 @@ class ImageManager {
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
     
-    func deleteImage(fileName: String, category: Category) {
+    public func deleteImage(fileName: String, category: Category) {
         let fileURL = getDocumentsDirectory()
             .appendingPathComponent(category.rawValue)
             .appendingPathComponent(fileName)
