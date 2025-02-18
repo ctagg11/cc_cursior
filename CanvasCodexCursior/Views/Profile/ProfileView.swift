@@ -7,6 +7,9 @@ struct ProfileView: View {
     @EnvironmentObject private var authService: AuthenticationService
     @Environment(\.managedObjectContext) private var viewContext
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
+    @AppStorage("firstName") private var firstName: String = ""
+    @AppStorage("lastName") private var lastName: String = ""
+    @AppStorage("bannerArtworkID") private var bannerArtworkID: String = ""
     @State private var showingSettings = false
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -15,6 +18,7 @@ struct ProfileView: View {
     @State private var selectedImage: PhotosPickerItem?
     @State private var profileImage: Image?
     @State private var showingAllArtwork = false
+    @State private var showingBannerPicker = false
     
     // Fetch Requests for stats
     @FetchRequest(
@@ -37,69 +41,120 @@ struct ProfileView: View {
         sortDescriptors: []
     ) private var updates: FetchedResults<ProjectUpdateEntity>
     
+    private var selectedBannerArtwork: ArtworkEntity? {
+        artworks.first { $0.id?.uuidString == bannerArtworkID }
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Profile Header with Photo
-                    VStack(spacing: 16) {
-                        PhotosPicker(selection: $selectedImage, matching: .images) {
-                            if let profileImage {
-                                profileImage
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(AppTheme.Colors.primary, lineWidth: 2))
-                            } else {
-                                Image(systemName: "person.circle.fill")
-                                    .font(.system(size: 80))
-                                    .foregroundStyle(AppTheme.Colors.primary)
-                            }
-                        }
-                        .onChange(of: selectedImage) { oldValue, newValue in
-                            Task {
-                                await loadProfileImage()
-                            }
+                VStack(spacing: 0) {
+                    // Banner Section
+                    ZStack(alignment: .bottomTrailing) {
+                        if let artwork = selectedBannerArtwork,
+                           let fileName = artwork.imageFileName,
+                           let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(height: 150)
+                                .clipped()
+                                .overlay(Color.black.opacity(0.3))
+                        } else {
+                            Rectangle()
+                                .fill(AppTheme.Colors.primary.opacity(0.1))
+                                .frame(height: 150)
                         }
                         
-                        VStack(spacing: 4) {
-                            Text(authService.user?.email ?? "Artist")
-                                .font(.headline)
-                            Text("Member since \(authService.user?.metadata.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? "...")")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                        // Change Banner Button
+                        Button {
+                            showingBannerPicker = true
+                        } label: {
+                            Label("Change Banner", systemImage: "photo")
+                                .font(.caption)
+                                .padding(8)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
                         }
-                    }
-                    .padding(.vertical, 32)
-                    
-                    // Stats Section
-                    FormSection(title: "Your Activity") {
-                        StatsGrid(stats: [
-                            ("Artworks", "\(artworks.count)"),
-                            ("Galleries", "\(galleries.count)"),
-                            ("Projects", "\(projects.count)"),
-                            ("Updates", "\(updates.count)")
-                        ])
+                        .padding(8)
                     }
                     
-                    // All Artwork Button
-                    Button {
-                        showingAllArtwork = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "photo.stack")
-                            Text("View All Artwork")
+                    VStack(spacing: 24) {
+                        // Profile Header with Photo
+                        VStack(spacing: 16) {
+                            PhotosPicker(selection: $selectedImage, matching: .images) {
+                                ZStack(alignment: .topTrailing) {
+                                    if let profileImage {
+                                        profileImage
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(Circle())
+                                            .overlay(Circle().stroke(AppTheme.Colors.primary, lineWidth: 2))
+                                    } else {
+                                        Image(systemName: "person.circle.fill")
+                                            .font(.system(size: 80))
+                                            .foregroundStyle(AppTheme.Colors.primary)
+                                            .overlay(alignment: .topTrailing) {
+                                                Circle()
+                                                    .fill(AppTheme.Colors.primary)
+                                                    .frame(width: 24, height: 24)
+                                                    .overlay(
+                                                        Image(systemName: "plus")
+                                                            .font(.system(size: 16, weight: .bold))
+                                                            .foregroundStyle(.white)
+                                                    )
+                                                    .offset(x: 6, y: -6)
+                                            }
+                                    }
+                                }
+                            }
+                            .onChange(of: selectedImage) { oldValue, newValue in
+                                Task {
+                                    await loadProfileImage()
+                                }
+                            }
+                            
+                            VStack(spacing: 4) {
+                                if !firstName.isEmpty || !lastName.isEmpty {
+                                    Text("\(firstName) \(lastName)")
+                                        .font(.headline)
+                                }
+                                Text("Member since \(authService.user?.metadata.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? "...")")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(AppTheme.Colors.primary)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.top, -50) // Overlap with banner
+                        
+                        // Stats Section
+                        FormSection(title: "Your Activity") {
+                            StatsGrid(stats: [
+                                ("Artworks", "\(artworks.count)"),
+                                ("Galleries", "\(galleries.count)"),
+                                ("Projects", "\(projects.count)"),
+                                ("Updates", "\(updates.count)")
+                            ])
+                        }
+                        
+                        // All Artwork Button
+                        Button {
+                            showingAllArtwork = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "photo.stack")
+                                Text("View All Artwork")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(AppTheme.Colors.primary)
+                            .foregroundColor(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .padding(.horizontal)
                     }
                     .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
             .background(Color(UIColor.systemGroupedBackground))
             .navigationBarTitleDisplayMode(.inline)
@@ -122,6 +177,9 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showingAllArtwork) {
                 AllArtworkView()
+            }
+            .sheet(isPresented: $showingBannerPicker) {
+                BannerPickerView(selectedArtworkID: $bannerArtworkID)
             }
             .alert("Error", isPresented: $showingError) {
                 Button("OK") {}
@@ -302,5 +360,58 @@ struct AllArtworkView: View {
         }
         .navigationTitle("All Artwork")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// Banner Picker View
+struct BannerPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var selectedArtworkID: String
+    @FetchRequest(
+        entity: ArtworkEntity.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \ArtworkEntity.createdAt, ascending: false)]
+    ) private var artworks: FetchedResults<ArtworkEntity>
+    
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(artworks) { artwork in
+                    HStack {
+                        if let fileName = artwork.imageFileName,
+                           let image = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 60, height: 60)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        
+                        Text(artwork.name ?? "Untitled")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        if artwork.id?.uuidString == selectedArtworkID {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(AppTheme.Colors.primary)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selectedArtworkID = artwork.id?.uuidString ?? ""
+                        dismiss()
+                    }
+                }
+            }
+            .navigationTitle("Choose Banner")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 } 
