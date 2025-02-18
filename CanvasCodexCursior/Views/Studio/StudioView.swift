@@ -10,7 +10,7 @@ struct StudioView: View {
     @State private var selectedSection = Section.projects
     
     enum Section: String {
-        case projects = "Works"
+        case projects = "Works in Progress"
         case components = "Components"
     }
     

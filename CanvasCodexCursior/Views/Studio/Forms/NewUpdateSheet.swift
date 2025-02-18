@@ -11,6 +11,7 @@ struct NewUpdateSheet: View {
     @State private var isPublic = false
     @State private var showingScanner = false
     @State private var scannedImage: UIImage?
+    @State private var showingImagePicker = false
     
     init(project: ProjectEntity, initialImage: UIImage? = nil) {
         self.project = project
@@ -21,12 +22,15 @@ struct NewUpdateSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    AppTextField(
-                        label: "Update Title",
-                        placeholder: "What did you accomplish?",
-                        icon: "pencil",
-                        text: $title
-                    )
+                    TextField("What did you accomplish?", text: $title)
+                        .textFieldStyle(.plain)
+                        .padding(12)
+                        .background(Color(uiColor: .systemBackground))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
                     
                     TextEditor(text: $changes)
                         .frame(height: 100)
@@ -61,17 +65,75 @@ struct NewUpdateSheet: View {
                 
                 Section {
                     if let image = scannedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 200)
-                    }
-                    
-                    Button {
-                        showingScanner = true
-                    } label: {
-                        Label(scannedImage == nil ? "Scan Progress Image" : "Rescan Image", 
-                              systemImage: "camera")
+                        VStack(spacing: 8) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxHeight: 200)
+                                .cornerRadius(8)
+                            
+                            Button(role: .destructive) {
+                                scannedImage = nil
+                            } label: {
+                                Label("Remove Photo", systemImage: "trash")
+                            }
+                        }
+                    } else {
+                        VStack(spacing: 16) {
+                            Button {
+                                showingScanner = true
+                            } label: {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "camera")
+                                        .font(.system(size: 32))
+                                        .foregroundStyle(.secondary)
+                                    Text("Scan Progress Image")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 120)
+                                .background(Color(uiColor: .systemBackground))
+                            }
+                            .buttonStyle(.plain)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(style: StrokeStyle(
+                                        lineWidth: 1,
+                                        dash: [6],
+                                        dashPhase: 0
+                                    ))
+                                    .foregroundStyle(Color.gray.opacity(0.3))
+                            )
+                            .cornerRadius(8)
+                            
+                            Button {
+                                showingImagePicker = true
+                            } label: {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "photo.on.rectangle.angled")
+                                        .font(.system(size: 32))
+                                        .foregroundStyle(.secondary)
+                                    Text("Choose from Library")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 120)
+                                .background(Color(uiColor: .systemBackground))
+                            }
+                            .buttonStyle(.plain)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(style: StrokeStyle(
+                                        lineWidth: 1,
+                                        dash: [6],
+                                        dashPhase: 0
+                                    ))
+                                    .foregroundStyle(Color.gray.opacity(0.3))
+                            )
+                            .cornerRadius(8)
+                        }
                     }
                 }
                 
@@ -101,6 +163,9 @@ struct NewUpdateSheet: View {
                         scannedImage = image
                     }
                 }
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $scannedImage)
             }
         }
     }

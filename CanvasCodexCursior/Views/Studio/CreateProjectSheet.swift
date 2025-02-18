@@ -22,12 +22,36 @@ struct CreateProjectSheet: View {
             Form {
                 // Basic Info Section
                 Section("Project Details") {
-                    AppTextField(
-                        label: "Project Name",
-                        placeholder: "Enter project name",
-                        icon: "paintpalette",
-                        text: $projectData.name
-                    )
+                    TextField("Enter project name", text: $projectData.name)
+                        .textFieldStyle(.plain)
+                        .padding(12)
+                        .background(Color(uiColor: .systemBackground))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                    
+                    TextEditor(text: $projectData.inspiration)
+                        .frame(height: 100)
+                        .padding(12)
+                        .background(Color(uiColor: .systemBackground))
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .overlay(
+                            Group {
+                                if projectData.inspiration.isEmpty {
+                                    Text("Comment on your project - the process, goals, or inspiration")
+                                        .foregroundStyle(.secondary)
+                                        .padding(.leading, 16)
+                                        .padding(.top, 20)
+                                }
+                            },
+                            alignment: .topLeading
+                        )
                     
                     Picker("Medium", selection: $projectData.medium) {
                         Text("Select Medium").tag("")
@@ -40,21 +64,51 @@ struct CreateProjectSheet: View {
                 }
                 
                 // Reference & Inspiration Section
-                Section("References & Inspiration") {
-                    TextEditor(text: $projectData.inspiration)
-                        .frame(minHeight: 100)
-                        .overlay(
-                            Group {
-                                if projectData.inspiration.isEmpty {
-                                    Text("Add notes about your inspiration, reference images, or ideas...")
-                                        .foregroundColor(.secondary)
-                                        .padding(.leading, 4)
-                                        .padding(.top, 8)
-                                        .allowsHitTesting(false)
+                Section("References") {
+                    VStack {
+                        if let image = selectedImage {
+                            VStack(spacing: 8) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 200)
+                                    .cornerRadius(8)
+                                
+                                Button(role: .destructive) {
+                                    selectedImage = nil
+                                } label: {
+                                    Label("Remove Photo", systemImage: "trash")
                                 }
-                            },
-                            alignment: .topLeading
-                        )
+                            }
+                        } else {
+                            Button {
+                                showingImagePicker = true
+                            } label: {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "photo.on.rectangle.angled")
+                                        .font(.system(size: 32))
+                                        .foregroundStyle(.secondary)
+                                    Text("Add reference image for your project")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 160)
+                                .background(Color(uiColor: .systemBackground))
+                            }
+                            .buttonStyle(.plain)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(style: StrokeStyle(
+                                        lineWidth: 1,
+                                        dash: [6],
+                                        dashPhase: 0
+                                    ))
+                                    .foregroundStyle(Color.gray.opacity(0.3))
+                            )
+                            .cornerRadius(8)
+                        }
+                    }
                     
                     // References Grid
                     if !projectData.references.isEmpty {
@@ -66,40 +120,6 @@ struct CreateProjectSheet: View {
                                     .frame(width: 80, height: 80)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                        }
-                    }
-                    
-                    // Reference Image Section
-                    if let image = selectedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 200)
-                        
-                        HStack {
-                            Button("Confirm Reference Photo", systemImage: "checkmark.circle") {
-                                print("DEBUG: Adding image to references")
-                                let reference = ReferenceImage(image: image)
-                                projectData.references.append(reference)
-                                selectedImage = nil  // Clear selected image after adding to references
-                                print("DEBUG: Current references count: \(projectData.references.count)")
-                            }
-                            .foregroundColor(.green)
-                            
-                            Spacer()
-                            
-                            Button(role: .destructive) {
-                                selectedImage = nil
-                            } label: {
-                                Label("Remove", systemImage: "xmark.circle")
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    } else {
-                        Button {
-                            showingImagePicker = true
-                        } label: {
-                            Label("Add Reference Image", systemImage: "photo")
                         }
                     }
                 }
@@ -199,7 +219,8 @@ struct CreateProjectSheet: View {
                     .onChange(of: selectedImage) { oldValue, newValue in
                         if let image = newValue {
                             print("DEBUG: Image selected from picker")
-                            // Don't automatically add to references, wait for user confirmation
+                            let reference = ReferenceImage(image: image)
+                            projectData.references.append(reference)
                         }
                     }
             }
