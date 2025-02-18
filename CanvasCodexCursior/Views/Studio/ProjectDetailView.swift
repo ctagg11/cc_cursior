@@ -166,6 +166,8 @@ struct ProgressUpdatesView: View {
     @StateObject private var viewModel = ProjectViewModel()
     @State private var selectedUpdate: ProjectUpdateEntity?
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingDeleteConfirmation = false
+    @State private var updateToDelete: ProjectUpdateEntity?
     
     // Use FetchRequest for automatic updates
     @FetchRequest private var updates: FetchedResults<ProjectUpdateEntity>
@@ -185,6 +187,28 @@ struct ProgressUpdatesView: View {
         Array(updates)
     }
     
+    private func deleteUpdate(_ update: ProjectUpdateEntity) {
+        // Delete associated image file if it exists
+        if let fileName = update.imageFileName {
+            ImageManager.shared.deleteImage(fileName: fileName, category: .projectUpdate)
+        }
+        
+        // Remove from Core Data
+        viewContext.delete(update)
+        
+        // If this was the selected update, select the next one
+        if update == selectedUpdate {
+            selectedUpdate = sortedUpdates.first
+        }
+        
+        // Save changes
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error deleting update: \(error)")
+        }
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
@@ -201,6 +225,16 @@ struct ProgressUpdatesView: View {
                         if let update = selectedUpdate ?? sortedUpdates.first {
                             UpdateDetailView(update: update)
                                 .transition(.opacity)
+                                .toolbar {
+                                    ToolbarItem(placement: .primaryAction) {
+                                        Button(role: .destructive) {
+                                            updateToDelete = update
+                                            showingDeleteConfirmation = true
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                    }
+                                }
                         }
                         
                         // Development Timeline
@@ -210,7 +244,11 @@ struct ProgressUpdatesView: View {
                             
                             TimelineView(
                                 updates: sortedUpdates,
-                                selectedUpdate: $selectedUpdate
+                                selectedUpdate: $selectedUpdate,
+                                onDelete: { update in
+                                    updateToDelete = update
+                                    showingDeleteConfirmation = true
+                                }
                             )
                         }
                     }
@@ -247,6 +285,21 @@ struct ProgressUpdatesView: View {
                 selectedUpdate = newValue.first
             }
         }
+        .confirmationDialog(
+            "Delete Update?",
+            isPresented: $showingDeleteConfirmation,
+            actions: {
+                Button("Delete", role: .destructive) {
+                    if let update = updateToDelete {
+                        deleteUpdate(update)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            },
+            message: {
+                Text("This will permanently delete this update. This action cannot be undone.")
+            }
+        )
     }
 }
 
