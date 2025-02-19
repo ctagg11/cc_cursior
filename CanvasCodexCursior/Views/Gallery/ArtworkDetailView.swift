@@ -539,11 +539,3 @@ struct TagLegendItem: View {
         .padding(.horizontal, 8)
     }
 }
-
-#Preview("Tag Mode") {
-    FullScreenTagMode(
-        image: UIImage(systemName: "photo")!,
-        artwork: PreviewData.sampleArtwork
-    )
-}
-

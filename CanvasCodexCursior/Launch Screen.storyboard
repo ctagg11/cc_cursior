@@ -21,9 +21,8 @@
                                 <color key="textColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" image="launchtest" translatesAutoresizingMaskIntoConstraints="NO" id="m9A-w2-WTt">
-                                <rect key="frame" x="76" y="315" width="240" height="128"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="launchtest" translatesAutoresizingMaskIntoConstraints="NO" id="m9A-w2-WTt">
+                                <rect key="frame" x="49.666666666666657" y="306.66666666666669" width="294" height="239.00000000000006"/>
                                 <rect key="contentStretch" x="0.0" y="0.0" width="1" height="0.0"/>
                             </imageView>
                         </subviews>
@@ -33,7 +32,11 @@
                         <constraints>
                             <constraint firstItem="Bcu-3y-fUS" firstAttribute="centerX" secondItem="obG-Y5-kRd" secondAttribute="centerX" id="5cz-MP-9tL"/>
                             <constraint firstItem="obG-Y5-kRd" firstAttribute="leading" secondItem="Bcu-3y-fUS" secondAttribute="leading" symbolic="YES" id="SfN-ll-jLj"/>
+                            <constraint firstItem="m9A-w2-WTt" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="WiZ-El-sPa"/>
+                            <constraint firstItem="m9A-w2-WTt" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="Wiu-pp-Cp4"/>
                             <constraint firstAttribute="bottom" secondItem="obG-Y5-kRd" secondAttribute="bottom" constant="20" id="Y44-ml-fuU"/>
+                            <constraint firstItem="m9A-w2-WTt" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="iXO-EB-DyJ"/>
+                            <constraint firstItem="m9A-w2-WTt" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="qO8-si-62k"/>
                         </constraints>
                     </view>
                 </viewController>

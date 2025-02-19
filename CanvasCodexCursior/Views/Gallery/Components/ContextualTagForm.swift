@@ -205,25 +205,3 @@ struct RatingSlider: View {
         }
     }
 }
-
-#Preview("Tag Form") {
-    ZStack {
-        // Dark background to simulate the full screen mode
-        Color.black.ignoresSafeArea()
-        
-        // Sample image
-        Image(systemName: "photo")
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(.gray)
-            .padding(40)
-        
-        // The form we want to preview
-        ContextualTagForm(
-            isPresented: .constant(true),
-            location: CGPoint(x: 200, y: 300),
-            artwork: PreviewData.sampleArtwork
-        )
-    }
-    .preferredColorScheme(.dark)
-} 

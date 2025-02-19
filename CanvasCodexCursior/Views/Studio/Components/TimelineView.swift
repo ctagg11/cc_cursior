@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct TimelineView: View {
     let updates: [ProjectUpdateEntity]
@@ -13,13 +14,13 @@ struct TimelineView: View {
                         update: update,
                         isLatest: update == updates.first,
                         isSelected: update == selectedUpdate,
+                        onSelect: {
+                            withAnimation {
+                                selectedUpdate = update
+                            }
+                        },
                         onDelete: { onDelete(update) }
                     )
-                    .onTapGesture {
-                        withAnimation {
-                            selectedUpdate = update
-                        }
-                    }
                 }
             }
             .padding()
@@ -31,6 +32,7 @@ struct TimelineItem: View {
     let update: ProjectUpdateEntity
     let isLatest: Bool
     let isSelected: Bool
+    let onSelect: () -> Void
     let onDelete: () -> Void
     @State private var showingDeleteButton = false
     
@@ -95,11 +97,14 @@ struct TimelineItem: View {
             }
         }
         .frame(width: 120)
+        .contentShape(Rectangle())
         .onTapGesture {
             if showingDeleteButton {
                 withAnimation(.spring(response: 0.3)) {
                     showingDeleteButton = false
                 }
+            } else {
+                onSelect()
             }
         }
     }
