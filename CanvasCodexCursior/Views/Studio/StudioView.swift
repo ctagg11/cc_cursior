@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 
+// Remove the AI Assistant Models section and keep everything else
 struct StudioView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var sortOption = SortOption.lastActivity
@@ -11,7 +12,7 @@ struct StudioView: View {
     
     enum Section: String {
         case projects = "Works in Progress"
-        case components = "Components"
+        case components = "AI Art Assistant"
     }
     
     enum SortOption {
@@ -40,9 +41,7 @@ struct StudioView: View {
                     HStack(spacing: 0) {
                         ForEach([Section.projects, Section.components], id: \.self) { section in
                             Button {
-                                withAnimation {
-                                    selectedSection = section
-                                }
+                                selectedSection = section
                             } label: {
                                 VStack(spacing: 4) {
                                     Text(section.rawValue)
@@ -61,58 +60,59 @@ struct StudioView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
                     
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        
-                        TextField(
-                            selectedSection == .projects ? "Search works" : "Search components",
-                            text: $searchText
-                        )
-                        .textFieldStyle(.plain)
-                        
-                        if !searchText.isEmpty {
-                            Button {
-                                searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
+                    // Only show search and filters for Projects section
+                    if selectedSection == .projects {
+                        // Search Bar
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.secondary)
+                            
+                            TextField("Search works", text: $searchText)
+                                .textFieldStyle(.plain)
+                            
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
+                        .padding(8)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        
+                        // Quick Filters
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                FilterChip(
+                                    icon: "paintpalette",
+                                    title: "All",
+                                    isSelected: !showActiveOnly
+                                ) {
+                                    showActiveOnly = false
+                                }
+                                
+                                FilterChip(
+                                    icon: "clock",
+                                    title: "Active",
+                                    isSelected: showActiveOnly
+                                ) {
+                                    showActiveOnly = true
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                        }
                     }
-                    .padding(8)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
                     
                     Divider()
                 }
                 .background(Color(.systemBackground))
-                
-                // Quick Filters
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        FilterChip(
-                            icon: "paintpalette",
-                            title: "All",
-                            isSelected: !showActiveOnly
-                        ) {
-                            showActiveOnly = false
-                        }
-                        
-                        FilterChip(
-                            icon: "clock",
-                            title: "Active",
-                            isSelected: showActiveOnly
-                        ) {
-                            showActiveOnly = true
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                }
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedSection)
                 
                 // Content
                 if selectedSection == .projects {
@@ -188,11 +188,7 @@ struct StudioView: View {
     }
     
     private var componentsContent: some View {
-        ContentUnavailableView(
-            "Coming Soon",
-            systemImage: "square.stack.3d.up",
-            description: Text("Art Components will help you organize reusable elements of your artwork")
-        )
+        AIArtAssistantView()
     }
     
     private var projects: [ProjectEntity] {
