@@ -52,18 +52,21 @@ struct AnimatedCategoryCard: View {
                 if isExpanded {
                     // Expanded Header View
                     HStack {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 20, weight: .semibold))
+                        Button(action: onSelect) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
                         
                         Spacer()
                         
                         Text(category.rawValue)
                             .font(.title3)
                             .fontWeight(.semibold)
+                            .foregroundColor(.white)
                         
                         Spacer()
                     }
-                    .foregroundColor(.white)
                     .padding()
                 } else {
                     // Card Content

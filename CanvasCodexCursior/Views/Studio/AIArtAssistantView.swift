@@ -16,20 +16,29 @@ struct AIArtAssistantView: View {
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            // Assistant Header
-            AssistantHeaderView()
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedCategory = nil
-                        showingGalleryPicker = false
+            if selectedCategory == nil {
+                // Assistant Header - only show on main landing page
+                AssistantHeaderView()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedCategory = nil
+                            showingGalleryPicker = false
+                        }
                     }
-                }
+            } else {
+                // Add padding when header is hidden
+                Spacer()
+                    .frame(height: 16)
+            }
             
-            // Quick Actions Grid
+            // Content
             if selectedCategory == .reviewArt {
                 ArtworkReviewFlow(shouldNavigateToChat: $showingGalleryPicker)
                     .padding([.horizontal, .bottom])
-            } else {
+            } else if selectedCategory == .findInspiration {
+                QuickActionsGridView(selectedCategory: $selectedCategory, messageText: .constant(""))
+                    .padding([.horizontal, .bottom])
+            } else if selectedCategory == nil {
                 QuickActionsGridView(selectedCategory: $selectedCategory, messageText: .constant(""))
                     .padding([.horizontal, .bottom])
             }

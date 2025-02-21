@@ -140,7 +140,7 @@ struct ReferenceWorksView: View {
 }
 
 // MARK: - Color Palette View
-struct ColorPaletteView: View {
+struct InspirationPaletteView: View {
     @State private var selectedOption: PaletteOption?
     @State private var selectedImage: PhotosPickerItem?
     @State private var selectedMood: String?

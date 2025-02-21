@@ -33,11 +33,16 @@ enum ReviewType: String, CaseIterable {
 enum AnalysisType: String {
     case quick = "Quick Review"
     case detailed = "Detailed Analysis"
+    // Work in Progress specific types
+    case currentState = "How does this look?"
+    case nextSteps = "Where to go from here?"
     
     var description: String {
         switch self {
         case .quick: return "Get an overall assessment of your artwork"
         case .detailed: return "Deep dive into specific aspects of your work"
+        case .currentState: return "Get feedback on your current progress"
+        case .nextSteps: return "Get guidance on your next steps"
         }
     }
 }
@@ -56,6 +61,30 @@ struct AnalysisAspect: Identifiable, Hashable {
     ]
 }
 
+struct WIPOption: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    var isSelected: Bool
+    
+    static let currentStateOptions = [
+        WIPOption(name: "Help me check the composition", isSelected: false),
+        WIPOption(name: "Check if colors are working", isSelected: false),
+        WIPOption(name: "Are the proportions right?", isSelected: false),
+        WIPOption(name: "Does the focal point work?", isSelected: false),
+        WIPOption(name: "Give overall impression", isSelected: false),
+        WIPOption(name: "Just chat about it", isSelected: false)
+    ]
+    
+    static let nextStepsOptions = [
+        WIPOption(name: "I'm feeling stuck", isSelected: false),
+        WIPOption(name: "Should I add more?", isSelected: false),
+        WIPOption(name: "Is this finished?", isSelected: false),
+        WIPOption(name: "I want to try something different", isSelected: false),
+        WIPOption(name: "I have a specific idea but want feedback", isSelected: false),
+        WIPOption(name: "Just chat about it", isSelected: false)
+    ]
+}
+
 // MARK: - Review Flow View
 struct ArtworkReviewFlow: View {
     // Debug logging
@@ -70,7 +99,15 @@ struct ArtworkReviewFlow: View {
     @State private var selectedAnalysisType: AnalysisType?
     @State private var analysisAspects: [AnalysisAspect] = AnalysisAspect.aspects
     @State private var canProceed = false
+    @State private var searchText = ""
+    @State private var messages: [AIMessage] = []
+    @State private var inputText = ""
+    @State private var assistantState: AssistantState = .idle
+    @State private var showingSaveOptions = false
+    @State private var showingChatSheet = false
+    @State private var generatedPrompt = ""
     @Binding var shouldNavigateToChat: Bool
+    @State private var wipOptions: [WIPOption] = []
     
     // Fetch requests for artworks
     @FetchRequest(
@@ -91,16 +128,35 @@ struct ArtworkReviewFlow: View {
         if selectedAnalysisType == nil {
             return false
         }
-        if selectedAnalysisType == .quick {
-            return selectedItem != nil
+        if selectedReviewType == .finished {
+            if selectedAnalysisType == .quick {
+                return selectedItem != nil
+            }
+            return selectedItem != nil && analysisAspects.contains(where: { $0.isSelected })
+        } else {
+            // For work in progress, enable when at least one WIP option is selected
+            return selectedItem != nil && wipOptions.contains(where: { $0.isSelected })
         }
-        return selectedItem != nil && analysisAspects.contains(where: { $0.isSelected })
     }
     
     var body: some View {
         VStack(spacing: 20) {
             // Content Area
             VStack(spacing: 20) {
+                // Only show header on initial screen
+                if selectedReviewType == nil {
+                    AnimatedCategoryCard(
+                        category: .reviewArt,
+                        isSelected: true,
+                        isExpanded: true
+                    ) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            shouldNavigateToChat = false
+                            selectedReviewType = nil
+                        }
+                    }
+                }
+                
                 // Step 1: Review Type Selection
                 if selectedReviewType == nil {
                     reviewTypeSelection
@@ -124,8 +180,10 @@ struct ArtworkReviewFlow: View {
                     // Always show analysis type selection
                     analysisTypeSelection
                     
-                    // Show detailed options only if detailed analysis is selected
+                    // Show options based on selected type
                     if selectedAnalysisType == .detailed {
+                        detailedAnalysisOptions
+                    } else if selectedAnalysisType == .currentState || selectedAnalysisType == .nextSteps {
                         detailedAnalysisOptions
                     }
                 }
@@ -141,9 +199,9 @@ struct ArtworkReviewFlow: View {
             // Proceed Button (always visible but conditionally enabled)
             Button {
                 // Generate appropriate prompt based on selections
-                let prompt = generatePrompt()
-                logger.debug("Generated prompt: \(prompt)")
-                shouldNavigateToChat = true
+                generatedPrompt = generatePrompt()
+                logger.debug("Generated prompt: \(generatedPrompt)")
+                showingChatSheet = true
             } label: {
                 Text("Get Feedback")
                     .font(.headline)
@@ -154,6 +212,19 @@ struct ArtworkReviewFlow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .disabled(!canShowProceedButton)
+            .sheet(isPresented: $showingChatSheet) {
+                AIChatSheet(
+                    initialPrompt: generatedPrompt,
+                    artworkImage: (selectedItem as? ArtworkEntity)?.imageFileName.flatMap { ImageManager.shared.loadImage(fileName: $0, category: .artwork) } ?? 
+                                 (selectedItem as? ProjectEntity)?.updates?.allObjects
+                                    .compactMap { $0 as? ProjectUpdateEntity }
+                                    .sorted { ($0.date ?? Date()) > ($1.date ?? Date()) }
+                                    .first?
+                                    .imageFileName
+                                    .flatMap { ImageManager.shared.loadImage(fileName: $0, category: .projectUpdate) },
+                    artworkTitle: (selectedItem as? ArtworkEntity)?.name ?? (selectedItem as? ProjectEntity)?.name
+                )
+            }
         }
         .padding()
     }
@@ -166,12 +237,23 @@ struct ArtworkReviewFlow: View {
         }
         
         if let analysisType = selectedAnalysisType {
-            if analysisType == .quick {
+            switch analysisType {
+            case .quick:
                 prompt += "Provide a quick overall assessment. "
-            } else {
+            case .detailed:
                 prompt += "Provide a detailed analysis focusing on: "
                 let selectedAspects = analysisAspects.filter { $0.isSelected }
                 prompt += selectedAspects.map { $0.name.lowercased() }.joined(separator: ", ")
+                prompt += ". "
+            case .currentState:
+                prompt += "I'd like feedback on: "
+                let selectedOptions = wipOptions.filter { $0.isSelected }
+                prompt += selectedOptions.map { $0.name }.joined(separator: ", ")
+                prompt += ". "
+            case .nextSteps:
+                prompt += "I need guidance because: "
+                let selectedOptions = wipOptions.filter { $0.isSelected }
+                prompt += selectedOptions.map { $0.name }.joined(separator: ", ")
                 prompt += ". "
             }
         }
@@ -239,25 +321,63 @@ struct ArtworkReviewFlow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
+            // Search Bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search by title...", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(8)
+            .background(Color(.systemGray6))
+            .cornerRadius(8)
+            
             if let reviewType = selectedReviewType {
                 if reviewType == .finished {
-                    if finishedArtworks.isEmpty {
+                    if filteredFinishedArtworks.isEmpty {
                         emptyStateView(for: reviewType)
                     } else {
-                        artworkGrid(items: finishedArtworks) { artwork in
+                        artworkGrid(items: filteredFinishedArtworks) { artwork in
                             ArtworkItemView(artwork: artwork)
                         }
                     }
                 } else {
-                    if worksInProgress.isEmpty {
+                    if filteredWorksInProgress.isEmpty {
                         emptyStateView(for: reviewType)
                     } else {
-                        artworkGrid(items: worksInProgress) { project in
+                        artworkGrid(items: filteredWorksInProgress) { project in
                             ProjectItemView(project: project)
                         }
                     }
                 }
             }
+        }
+    }
+    
+    // Add computed properties for filtered results
+    private var filteredFinishedArtworks: [ArtworkEntity] {
+        if searchText.isEmpty {
+            return Array(finishedArtworks)
+        }
+        return finishedArtworks.filter { artwork in
+            artwork.name?.localizedCaseInsensitiveContains(searchText) ?? false
+        }
+    }
+    
+    private var filteredWorksInProgress: [ProjectEntity] {
+        if searchText.isEmpty {
+            return Array(worksInProgress)
+        }
+        return worksInProgress.filter { project in
+            project.name?.localizedCaseInsensitiveContains(searchText) ?? false
         }
     }
     
@@ -279,7 +399,7 @@ struct ArtworkReviewFlow: View {
     }
     
     private func artworkGrid<T: Identifiable, Content: View>(
-        items: FetchedResults<T>,
+        items: [T],
         @ViewBuilder content: @escaping (T) -> Content
     ) -> some View {
         ScrollView {
@@ -305,9 +425,9 @@ struct ArtworkReviewFlow: View {
     }
     
     private var analysisTypeSelection: some View {
-        VStack(spacing: 16) {
-            // Back button and title
-            HStack {
+        VStack(spacing: 12) {
+            // Back button and preview row
+            HStack(alignment: .center, spacing: 12) {
                 Button {
                     withAnimation {
                         selectedItem = nil
@@ -319,40 +439,62 @@ struct ArtworkReviewFlow: View {
                         .font(.system(size: 14, weight: .semibold))
                 }
                 
-                Text("Choose Review Type")
-                    .font(.headline)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // Analysis type buttons
-            ForEach([AnalysisType.quick, AnalysisType.detailed], id: \.self) { type in
-                let isSelected = selectedAnalysisType == type
-                let buttonBackground = RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.purple.opacity(0.1) : Color(.systemGray6))
-                let buttonBorder = RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.purple : Color.clear, lineWidth: 2)
-                
-                Button {
-                    handleAnalysisTypeSelection(type)
-                } label: {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(type.rawValue)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(isSelected ? .purple : .primary)
-                        
-                        Text(type.description)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(buttonBackground)
-                    .overlay(buttonBorder)
+                if let selectedArtwork = selectedItem as? ArtworkEntity {
+                    selectedArtworkPreview(artwork: selectedArtwork)
+                } else if let selectedProject = selectedItem as? ProjectEntity {
+                    selectedProjectPreview(project: selectedProject)
                 }
-                .buttonStyle(.plain)
+            }
+            
+            // Analysis type buttons - different options based on review type
+            if selectedReviewType == .finished {
+                finishedArtworkAnalysisOptions
+            } else {
+                workInProgressAnalysisOptions
             }
         }
+    }
+    
+    private var finishedArtworkAnalysisOptions: some View {
+        ForEach([AnalysisType.quick, AnalysisType.detailed], id: \.self) { type in
+            analysisTypeButton(for: type)
+        }
+    }
+    
+    private var workInProgressAnalysisOptions: some View {
+        ForEach([AnalysisType.currentState, AnalysisType.nextSteps], id: \.self) { type in
+            analysisTypeButton(for: type)
+        }
+    }
+    
+    private func analysisTypeButton(for type: AnalysisType) -> some View {
+        let isSelected = selectedAnalysisType == type
+        
+        return Button {
+            handleAnalysisTypeSelection(type)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(type.rawValue)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(isSelected ? .purple : .primary)
+                
+                Text(type.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.purple.opacity(0.1) : Color(.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.purple : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
     }
     
     private func handleAnalysisTypeSelection(_ type: AnalysisType) {
@@ -362,66 +504,209 @@ struct ArtworkReviewFlow: View {
                 canProceed = false
             } else {
                 selectedAnalysisType = type
-                canProceed = type == .quick
                 
-                if type == .quick {
-                    analysisAspects = analysisAspects.map { aspect in
-                        var newAspect = aspect
-                        newAspect.isSelected = false
-                        return newAspect
-                    }
+                // Set appropriate options based on the selected type
+                switch type {
+                case .currentState:
+                    wipOptions = WIPOption.currentStateOptions
+                case .nextSteps:
+                    wipOptions = WIPOption.nextStepsOptions
+                default:
+                    wipOptions = []
                 }
+                
+                // Only enable proceed button for finished artwork quick review
+                canProceed = selectedReviewType == .finished && type == .quick
+            }
+            
+            // Reset any previous selections
+            analysisAspects = analysisAspects.map { aspect in
+                var newAspect = aspect
+                newAspect.isSelected = false
+                return newAspect
             }
             
             logger.debug("Selected analysis type: \(String(describing: type))")
         }
     }
     
+    private func selectedArtworkPreview(artwork: ArtworkEntity) -> some View {
+        HStack(spacing: 12) {
+            if let imageFileName = artwork.imageFileName,
+               let uiImage = ImageManager.shared.loadImage(fileName: imageFileName, category: .artwork) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.secondary)
+                    )
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(artwork.name ?? "Untitled Artwork")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text("Selected Artwork")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.purple.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.purple.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+    
+    private func selectedProjectPreview(project: ProjectEntity) -> some View {
+        HStack(spacing: 12) {
+            if let latestUpdate = (project.updates?.allObjects as? [ProjectUpdateEntity])?
+                .sorted(by: { ($0.date ?? Date()) > ($1.date ?? Date()) })
+                .first,
+               let imageFileName = latestUpdate.imageFileName,
+               let uiImage = ImageManager.shared.loadImage(fileName: imageFileName, category: .projectUpdate) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .frame(width: 60, height: 60)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.secondary)
+                    )
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(project.name ?? "Untitled Project")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Text("Selected Work in Progress")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.purple.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.purple.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+    
     private var detailedAnalysisOptions: some View {
-        VStack(spacing: 16) {
-            Text("Select Areas to Analyze")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text("Choose one or more aspects")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(analysisAspects.indices, id: \.self) { index in
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            analysisAspects[index].isSelected.toggle()
-                            canProceed = analysisAspects.contains(where: { $0.isSelected })
-                        }
-                    } label: {
-                        VStack(spacing: 8) {
-                            Image(systemName: analysisAspects[index].icon)
-                                .font(.system(size: 24))
-                            
-                            Text(analysisAspects[index].name)
-                                .font(.caption)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(analysisAspects[index].isSelected ? Color.purple.opacity(0.1) : Color(.systemGray6))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(analysisAspects[index].isSelected ? Color.purple : Color.clear,
-                                               lineWidth: 2)
-                                )
-                        )
+        VStack(spacing: 12) {
+            if selectedReviewType == .finished {
+                // Original detailed analysis view for finished artwork
+                Text("Select Areas to Analyze")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    ForEach(analysisAspects.indices, id: \.self) { index in
+                        aspectButton(for: index)
                     }
-                    .foregroundColor(analysisAspects[index].isSelected ? .purple : .primary)
-                    .buttonStyle(.plain)
+                }
+            } else {
+                // Work in Progress options
+                Text(selectedAnalysisType == .currentState ? "What would you like feedback on?" : "What help do you need?")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(wipOptions.indices, id: \.self) { index in
+                            wipOptionButton(for: index)
+                        }
+                    }
                 }
             }
         }
         .transition(.move(edge: .leading))
+    }
+    
+    private func wipOptionButton(for index: Int) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                wipOptions[index].isSelected.toggle()
+                canProceed = wipOptions.contains(where: { $0.isSelected })
+            }
+        } label: {
+            HStack {
+                Text(wipOptions[index].name)
+                    .font(.subheadline)
+                    .foregroundColor(wipOptions[index].isSelected ? .purple : .primary)
+                
+                Spacer()
+                
+                if wipOptions[index].isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.purple)
+                }
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(wipOptions[index].isSelected ? Color.purple.opacity(0.1) : Color(.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(wipOptions[index].isSelected ? Color.purple : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    
+    private func aspectButton(for index: Int) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                analysisAspects[index].isSelected.toggle()
+                canProceed = analysisAspects.contains(where: { $0.isSelected })
+            }
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: analysisAspects[index].icon)
+                    .font(.system(size: 24))
+                
+                Text(analysisAspects[index].name)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(analysisAspects[index].isSelected ? Color.purple.opacity(0.1) : Color(.systemGray6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(analysisAspects[index].isSelected ? Color.purple : Color.clear,
+                                   lineWidth: 2)
+                    )
+            )
+        }
+        .foregroundColor(analysisAspects[index].isSelected ? .purple : .primary)
+        .buttonStyle(.plain)
     }
 }
 

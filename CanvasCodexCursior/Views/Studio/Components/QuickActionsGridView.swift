@@ -14,6 +14,7 @@ struct QuickActionsGridView: View {
     @Binding var selectedCategory: QuickActionCategory?
     @Binding var messageText: String
     @State private var shouldNavigateToChat = false
+    @State private var showingChatSheet = false
     
     // Animation states
     @State private var isExpanded = false
@@ -34,19 +35,19 @@ struct QuickActionsGridView: View {
     // Subcategories for Find Inspiration
     private let inspirationSubCategories = [
         SubCategory(
-            title: "Find Reference Works",
-            defaultPrompt: "Help me find reference artworks for ",
-            helperText: "Choose how you want to find reference works"
+            title: "Generate AI Reference Material",
+            defaultPrompt: "Help me generate reference material for ",
+            helperText: "Describe the type of reference material you're looking for"
         ),
         SubCategory(
-            title: "Generate Concept",
-            defaultPrompt: "Generate a concept for ",
-            helperText: "Describe the type of artwork or project you want to create"
+            title: "Explore and Learn Techniques",
+            defaultPrompt: "Help me learn about techniques for ",
+            helperText: "What techniques would you like to explore?"
         ),
         SubCategory(
-            title: "Explore Color Palettes",
-            defaultPrompt: "Suggest a color palette for ",
-            helperText: "Describe the mood, theme, or style you want to achieve"
+            title: "Color Palette Generation",
+            defaultPrompt: "Help me generate a color palette for ",
+            helperText: "Describe the mood or style you want to achieve"
         )
     ]
     
@@ -61,7 +62,7 @@ struct QuickActionsGridView: View {
     
     var body: some View {
         VStack {
-            if isExpanded {
+            if selectedCategory != nil {
                 // Expanded View
                 if let selected = selectedCategory {
                     VStack(spacing: 16) {
@@ -72,7 +73,6 @@ struct QuickActionsGridView: View {
                             isExpanded: true
                         ) {
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                isExpanded = false
                                 selectedCategory = nil
                                 selectedSubCategory = nil
                             }
@@ -129,30 +129,37 @@ struct QuickActionsGridView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                             
                             // Reference Works Options
-                            if let subCategory = selectedSubCategory,
-                               subCategory.title == "Find Reference Works" {
-                                VStack(spacing: 12) {
-                                    ForEach(ReferenceOption.allCases, id: \.self) { option in
-                                        Button {
-                                            // Handle reference option selection
-                                        } label: {
-                                            HStack {
-                                                Image(systemName: option.icon)
-                                                    .font(.system(size: 18))
-                                                Text(option.rawValue)
-                                                    .font(.subheadline)
+                            if let subCategory = selectedSubCategory {
+                                if subCategory.title == "Color Palette Generation" {
+                                    ColorPaletteGenerator()
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                } else if subCategory.title == "Explore and Learn Techniques" {
+                                    TechniqueExplorerView()
+                                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                                } else if subCategory.title == "Find Reference Works" {
+                                    VStack(spacing: 12) {
+                                        ForEach(ReferenceOption.allCases, id: \.self) { option in
+                                            Button {
+                                                // Handle reference option selection
+                                            } label: {
+                                                HStack {
+                                                    Image(systemName: option.icon)
+                                                        .font(.system(size: 18))
+                                                    Text(option.rawValue)
+                                                        .font(.subheadline)
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .padding(.horizontal, 16)
+                                                .background(Color(.systemGray6))
+                                                .clipShape(RoundedRectangle(cornerRadius: 12))
                                             }
-                                            .frame(maxWidth: .infinity)
-                                            .padding(.vertical, 12)
-                                            .padding(.horizontal, 16)
-                                            .background(Color(.systemGray6))
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .foregroundColor(.primary)
                                         }
-                                        .foregroundColor(.primary)
                                     }
+                                    .padding(.top, 8)
+                                    .transition(.move(edge: .bottom).combined(with: .opacity))
                                 }
-                                .padding(.top, 8)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
                             }
                             
                             // Helper text
@@ -202,24 +209,23 @@ struct QuickActionsGridView: View {
                         category: .chat,
                         isSelected: selectedCategory == .chat,
                         action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                selectedCategory = .chat
-                                isExpanded = true
-                            }
+                            logger.debug("Opening chat sheet directly")
+                            showingChatSheet = true
                         }
                     )
                 }
                 .transition(.scale.combined(with: .opacity))
             }
         }
+        .sheet(isPresented: $showingChatSheet) {
+            AIChatSheet(
+                initialPrompt: "",
+                artworkImage: nil,
+                artworkTitle: nil
+            )
+        }
         .onChange(of: selectedCategory) { newCategory in
             logger.debug("Selected category changed to: \(newCategory?.rawValue ?? "nil")")
-        }
-        .onChange(of: shouldNavigateToChat) { shouldNavigate in
-            if shouldNavigate {
-                // Handle navigation to chat view
-                logger.debug("Navigating to chat view")
-            }
         }
     }
 }
