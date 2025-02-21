@@ -5,10 +5,7 @@ import os.log
 struct AIArtAssistantView: View {
     // MARK: - Properties
     @State private var selectedCategory: QuickActionCategory?
-    @State private var messageText: String = ""
-    @State private var messages: [AIMessage] = []
     @State private var showingGalleryPicker = false
-    @State private var keyboardHeight: CGFloat = 0
     
     // Debug logging
     private let logger = Logger(
@@ -21,48 +18,23 @@ struct AIArtAssistantView: View {
         VStack(spacing: 0) {
             // Assistant Header
             AssistantHeaderView()
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedCategory = nil
+                        showingGalleryPicker = false
+                    }
+                }
             
             // Quick Actions Grid
-            QuickActionsGridView(selectedCategory: $selectedCategory, messageText: $messageText)
-                .padding(.horizontal)
+            if selectedCategory == .reviewArt {
+                ArtworkReviewFlow(shouldNavigateToChat: $showingGalleryPicker)
+                    .padding([.horizontal, .bottom])
+            } else {
+                QuickActionsGridView(selectedCategory: $selectedCategory, messageText: .constant(""))
+                    .padding([.horizontal, .bottom])
+            }
             
-            // Messages and Input Area
-            VStack(spacing: 0) {
-                // Messages Area with subtle background
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(messages) { message in
-                                MessageBubbleView(message: message)
-                                    .id(message.id)
-                            }
-                        }
-                        .padding()
-                    }
-                    .onChange(of: messages.count) { _ in
-                        if let lastMessage = messages.last {
-                            withAnimation {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-                .background(Color(.systemGray6).opacity(0.3))
-                
-                // Message Input with slightly darker background
-                MessageInputView(text: $messageText) {
-                    sendMessage()
-                }
-                .background(Color(.systemGray6).opacity(0.5))
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-        }
-        .sheet(isPresented: $showingGalleryPicker) {
-            if let category = selectedCategory {
-                ArtworkPickerView(category: category)
-            }
+            Spacer(minLength: 0)
         }
         .onChange(of: selectedCategory) { newCategory in
             handleCategorySelection(newCategory)
@@ -70,20 +42,6 @@ struct AIArtAssistantView: View {
     }
     
     // MARK: - Helper Methods
-    private func sendMessage() {
-        guard !messageText.isEmpty else { return }
-        let content = messageText // Store for logging
-        messages.append(AIMessage(
-            content: messageText,
-            isUser: true,
-            attachedImage: nil
-        ))
-        messageText = ""
-        
-        // Debug log
-        logger.debug("User sent message: \(content)")
-    }
-    
     private func handleCategorySelection(_ category: QuickActionCategory?) {
         guard let category = category else { return }
         

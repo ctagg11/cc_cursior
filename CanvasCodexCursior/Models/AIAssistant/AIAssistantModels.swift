@@ -19,15 +19,13 @@ struct AIMessage: Identifiable {
 enum QuickActionCategory: String, CaseIterable {
     case reviewArt = "Review My Art"
     case findInspiration = "Find Inspiration"
-    case learnTechniques = "Learn Techniques"
-    case planProject = "Plan My Project"
+    case chat = "Just Chat"
     
     var icon: String {
         switch self {
         case .reviewArt: return "photo.on.rectangle.angled"
         case .findInspiration: return "lightbulb.fill"
-        case .learnTechniques: return "paintbrush.fill"
-        case .planProject: return "list.clipboard.fill"
+        case .chat: return "bubble.left.and.bubble.right.fill"
         }
     }
     
@@ -35,8 +33,15 @@ enum QuickActionCategory: String, CaseIterable {
         switch self {
         case .reviewArt: return .blue
         case .findInspiration: return .purple
-        case .learnTechniques: return .orange
-        case .planProject: return .green
+        case .chat: return .green
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .reviewArt: return "Get detailed feedback on your artwork or work in progress"
+        case .findInspiration: return "Explore references, color palettes, and creative concepts"
+        case .chat: return "Have an open conversation about art, techniques, and creative ideas"
         }
     }
 }

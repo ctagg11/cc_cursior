@@ -1,5 +1,26 @@
 import SwiftUI
 
+// Helper for press events
+struct PressActions: ViewModifier {
+    var onPress: () -> Void
+    var onRelease: () -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in onPress() }
+                    .onEnded { _ in onRelease() }
+            )
+    }
+}
+
+extension View {
+    func pressEvents(onPress: @escaping (() -> Void), onRelease: @escaping (() -> Void)) -> some View {
+        modifier(PressActions(onPress: onPress, onRelease: onRelease))
+    }
+}
+
 struct AnimatedCategoryCard: View {
     let category: QuickActionCategory
     let isSelected: Bool
@@ -16,9 +37,7 @@ struct AnimatedCategoryCard: View {
             return [Color(hex: "60a5fa"), Color(hex: "93c5fd")]
         case .findInspiration:
             return [Color(hex: "c084fc"), Color(hex: "d8b4fe")]
-        case .learnTechniques:
-            return [Color(hex: "fb923c"), Color(hex: "fdba74")]
-        case .planProject:
+        case .chat:
             return [Color(hex: "4ade80"), Color(hex: "86efac")]
         }
     }
@@ -91,26 +110,5 @@ struct AnimatedCategoryCard: View {
                 isPressed = false
             }
         }
-    }
-}
-
-// Helper for press events
-struct PressActions: ViewModifier {
-    var onPress: () -> Void
-    var onRelease: () -> Void
-    
-    func body(content: Content) -> some View {
-        content
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in onPress() }
-                    .onEnded { _ in onRelease() }
-            )
-    }
-}
-
-extension View {
-    func pressEvents(onPress: @escaping (() -> Void), onRelease: @escaping (() -> Void)) -> some View {
-        modifier(PressActions(onPress: onPress, onRelease: onRelease))
     }
 } 
