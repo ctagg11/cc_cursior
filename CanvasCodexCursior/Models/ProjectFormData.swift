@@ -8,7 +8,7 @@ struct ProjectFormData {
     var inspiration: String = ""
     var skills: String = ""
     var timeEstimate: TimeEstimate = .singleSession
-    var priority: ProjectPriority = .medium
+    var difficultyLevel: DifficultyLevel = .moderate
     var references: [ReferenceImage] = []
 }
 
@@ -29,13 +29,13 @@ enum TimeEstimate: String, CaseIterable {
     }
 }
 
-enum ProjectPriority: String, CaseIterable {
-    case high
-    case medium
-    case low
-    case experimental
+enum DifficultyLevel: String, CaseIterable {
+    case beginner = "Beginner Friendly"
+    case moderate = "Moderate Challenge"
+    case advanced = "Advanced Technique"
+    case experimental = "Experimental/Unknown"
     
     var description: String {
-        rawValue.capitalized
+        return rawValue
     }
 } 

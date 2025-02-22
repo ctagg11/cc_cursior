@@ -12,6 +12,10 @@ struct ProjectDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteConfirmation = false
+    @State private var showingCompletionConfirmation = false
+    @State private var showingNoUpdatesAlert = false
+    @State private var showingNewArtworkForm = false
+    @State private var selectedUpdate: ProjectUpdateEntity?
     
     // Add observation of the project's objectWillChange
     @State private var projectObserver: Any?
@@ -45,13 +49,27 @@ struct ProjectDetailView: View {
                     .fontWeight(.semibold)
                     .padding(.horizontal)
                 
-                if let startDate = project.startDate {
-                    Text("Started \(dateFormatter.string(from: startDate))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                HStack {
+                    if let startDate = project.startDate {
+                        Text("Started \(dateFormatter.string(from: startDate))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // Status Indicator
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(project.isCompleted ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        Text(project.isCompleted ? "Completed" : "In Progress")
+                            .font(.subheadline)
+                            .foregroundStyle(project.isCompleted ? Color.green : Color.orange)
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -96,6 +114,20 @@ struct ProjectDetailView: View {
                         Label("Edit Project", systemImage: "pencil")
                     }
                     
+                    if !project.isCompleted {
+                        Button {
+                            // Check if there are any updates before allowing completion
+                            if let updates = project.updates?.allObjects as? [ProjectUpdateEntity],
+                               !updates.isEmpty {
+                                showingCompletionConfirmation = true
+                            } else {
+                                showingNoUpdatesAlert = true
+                            }
+                        } label: {
+                            Label("Mark as Complete", systemImage: "checkmark.circle")
+                        }
+                    }
+                    
                     Button(role: .destructive) {
                         showingDeleteConfirmation = true
                     } label: {
@@ -122,6 +154,33 @@ struct ProjectDetailView: View {
                 Text("This will permanently delete this project and all its updates. This action cannot be undone.")
             }
         )
+        .confirmationDialog(
+            "Complete Project?",
+            isPresented: $showingCompletionConfirmation,
+            actions: {
+                Button("Complete and Create Artwork", role: .none) {
+                    completeProject()
+                }
+                Button("Cancel", role: .cancel) {}
+            },
+            message: {
+                Text("This will mark the project as complete and create a new artwork entry from your latest progress update.")
+            }
+        )
+        .alert("No Updates Available", isPresented: $showingNoUpdatesAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please add at least one progress update before completing the project.")
+        }
+        .sheet(isPresented: $showingNewArtworkForm) {
+            if let update = selectedUpdate,
+               let imageFileName = update.imageFileName,
+               let image = ImageManager.shared.loadImage(fileName: imageFileName, category: .projectUpdate) {
+                NewArtworkForm(image: image) {
+                    // Handle completion
+                }
+            }
+        }
     }
     
     private func deleteProject() {
@@ -156,6 +215,25 @@ struct ProjectDetailView: View {
             dismiss()
         } catch {
             print("Error deleting project: \(error)")
+        }
+    }
+    
+    private func completeProject() {
+        // Get the most recent update
+        if let updates = project.updates?.allObjects as? [ProjectUpdateEntity],
+           let latestUpdate = updates.sorted(by: { ($0.date ?? Date()) > ($1.date ?? Date()) }).first,
+           let imageFileName = latestUpdate.imageFileName,
+           let image = ImageManager.shared.loadImage(fileName: imageFileName, category: .projectUpdate) {
+            
+            // Set the project as completed
+            project.isCompleted = true
+            try? viewContext.save()
+            
+            // Store the latest update for the artwork form
+            selectedUpdate = latestUpdate
+            
+            // Show the new artwork form
+            showingNewArtworkForm = true
         }
     }
 }
@@ -309,6 +387,8 @@ struct ReferencesView: View {
     @Binding var showingScanner: Bool
     @State private var currentReferenceIndex = 0
     @Environment(\.managedObjectContext) private var viewContext
+    @State private var showingDeleteConfirmation = false
+    @State private var referenceToDelete: ReferenceEntity?
     
     // Use FetchRequest for automatic updates
     @FetchRequest private var references: FetchedResults<ReferenceEntity>
@@ -328,15 +408,34 @@ struct ReferencesView: View {
         Array(references)
     }
     
+    private func deleteReference(_ reference: ReferenceEntity) {
+        // Delete the image file
+        if let fileName = reference.imageFileName {
+            ImageManager.shared.deleteImage(fileName: fileName, category: .reference)
+        }
+        
+        // Delete from Core Data
+        viewContext.delete(reference)
+        
+        // Update current index if needed
+        if currentReferenceIndex >= sortedReferences.count - 1 {
+            currentReferenceIndex = max(0, sortedReferences.count - 2)
+        }
+        
+        // Save changes
+        try? viewContext.save()
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 4) {
                     // Reference Images Section
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Reference Images")
                             .font(.headline)
                             .padding(.horizontal)
+                            .padding(.top, 8)
                         
                         if sortedReferences.isEmpty {
                             ContentUnavailableView(
@@ -344,16 +443,38 @@ struct ReferencesView: View {
                                 systemImage: "photo",
                                 description: Text("Add reference images to help guide your project")
                             )
-                            .padding(.top, 20)
+                            .padding(.top, 8)
                         } else {
                             // Reference Image Carousel
                             ZStack(alignment: .center) {
                                 if !sortedReferences.isEmpty && currentReferenceIndex < sortedReferences.count {
-                                    ReferenceImageView(reference: sortedReferences[currentReferenceIndex])
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: UIScreen.main.bounds.height * 0.6)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    VStack(spacing: 2) {
+                                        ReferenceImageView(reference: sortedReferences[currentReferenceIndex])
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: UIScreen.main.bounds.height * 0.5)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        
+                                        // Title and Delete Button
+                                        HStack {
+                                            if let title = sortedReferences[currentReferenceIndex].title {
+                                                Text(title)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Button(role: .destructive) {
+                                                referenceToDelete = sortedReferences[currentReferenceIndex]
+                                                showingDeleteConfirmation = true
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .foregroundStyle(.red)
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
                                 }
                                 
                                 // Navigation Arrows
@@ -364,9 +485,9 @@ struct ReferencesView: View {
                                         }
                                     } label: {
                                         Image(systemName: "chevron.left.circle.fill")
-                                            .font(.system(size: 40))
+                                            .font(.system(size: 30))
                                             .foregroundStyle(.white)
-                                            .shadow(radius: 4)
+                                            .shadow(radius: 2)
                                     }
                                     .opacity(sortedReferences.count > 1 ? 1 : 0)
                                     
@@ -378,41 +499,30 @@ struct ReferencesView: View {
                                         }
                                     } label: {
                                         Image(systemName: "chevron.right.circle.fill")
-                                            .font(.system(size: 40))
+                                            .font(.system(size: 30))
                                             .foregroundStyle(.white)
-                                            .shadow(radius: 4)
+                                            .shadow(radius: 2)
                                     }
                                     .opacity(sortedReferences.count > 1 ? 1 : 0)
                                 }
-                                .padding(.horizontal, 20)
+                                .padding(.horizontal, 10)
                             }
                             
                             // Page Indicator
                             if sortedReferences.count > 1 {
-                                HStack(spacing: 8) {
+                                HStack(spacing: 4) {
                                     ForEach(0..<sortedReferences.count, id: \.self) { index in
                                         Circle()
                                             .fill(index == currentReferenceIndex ? Color.blue : Color.gray.opacity(0.3))
-                                            .frame(width: 8, height: 8)
+                                            .frame(width: 6, height: 6)
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.top, 8)
-                            }
-                            
-                            // Reference Title
-                            if let title = sortedReferences[currentReferenceIndex].title {
-                                Text(title)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 4)
                             }
                         }
                     }
-                    .padding(.vertical)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground))
                 }
-                .padding(.bottom, 80)
             }
             
             // Add Reference Button
@@ -434,6 +544,21 @@ struct ReferencesView: View {
                     .ignoresSafeArea()
             )
         }
+        .confirmationDialog(
+            "Delete Reference?",
+            isPresented: $showingDeleteConfirmation,
+            actions: {
+                Button("Delete", role: .destructive) {
+                    if let reference = referenceToDelete {
+                        deleteReference(reference)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            },
+            message: {
+                Text("This will permanently delete this reference image.")
+            }
+        )
         .sheet(isPresented: $showingScanner) {
             ImagePicker(selectedImage: .init(get: { nil }, set: { image in
                 if let image = image {

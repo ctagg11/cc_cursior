@@ -17,54 +17,37 @@ struct EditProjectSheet: View {
             inspiration: project.inspiration ?? "",
             skills: project.skills ?? "",
             timeEstimate: TimeEstimate(rawValue: project.timeEstimate ?? "") ?? .singleSession,
-            priority: ProjectPriority(rawValue: project.priority ?? "") ?? .medium
+            difficultyLevel: project.difficultyLevel != nil ? DifficultyLevel(rawValue: project.difficultyLevel ?? "") ?? .moderate : .moderate
         ))
     }
     
     var body: some View {
         NavigationStack {
             Form {
-                Section("Project Details") {
-                    AppTextField(
-                        label: "Project Name",
-                        placeholder: "Enter project name",
-                        icon: "paintpalette",
-                        text: $formData.name
-                    )
-                    
-                    Picker("Medium", selection: $formData.medium) {
-                        Text("Select Medium").tag("")
-                        ForEach(CommonMediums.allCases, id: \.self) { medium in
-                            Text(medium.rawValue).tag(medium.rawValue)
-                        }
-                    }
-                    
+                Section("Basic Info") {
+                    TextField("Project Name", text: $formData.name)
+                    TextField("Medium", text: $formData.medium)
                     DatePicker("Start Date", selection: $formData.startDate, displayedComponents: .date)
                 }
                 
-                Section("Notes & Planning") {
-                    AppTextField(
-                        label: "Inspiration",
-                        placeholder: "What inspired this project?",
-                        icon: "sparkles",
-                        text: $formData.inspiration
-                    )
-                    
-                    TextField("Skills (comma-separated)", text: $formData.skills)
-                }
-                
-                Section("Project Planning") {
-                    Picker("Estimated Time", selection: $formData.timeEstimate) {
+                Section("Details") {
+                    Picker("Time Estimate", selection: $formData.timeEstimate) {
                         ForEach(TimeEstimate.allCases, id: \.self) { estimate in
                             Text(estimate.description).tag(estimate)
                         }
                     }
                     
-                    Picker("Priority", selection: $formData.priority) {
-                        ForEach(ProjectPriority.allCases, id: \.self) { priority in
-                            Text(priority.description).tag(priority)
+                    Picker("Difficulty Level", selection: $formData.difficultyLevel) {
+                        ForEach(DifficultyLevel.allCases, id: \.self) { level in
+                            Text(level.description).tag(level)
                         }
                     }
+                }
+                
+                Section("Notes") {
+                    TextField("Skills to Practice", text: $formData.skills)
+                    TextEditor(text: $formData.inspiration)
+                        .frame(height: 100)
                 }
             }
             .navigationTitle("Edit Project")
@@ -78,7 +61,7 @@ struct EditProjectSheet: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        save()
+                        saveChanges()
                     }
                     .disabled(formData.name.isEmpty)
                 }
@@ -86,13 +69,16 @@ struct EditProjectSheet: View {
         }
     }
     
-    private func save() {
-        do {
-            try viewModel.updateProject(project, with: formData)
-            dismiss()
-        } catch {
-            // Handle error
-            print("Error updating project: \(error)")
-        }
+    private func saveChanges() {
+        project.name = formData.name
+        project.medium = formData.medium
+        project.startDate = formData.startDate
+        project.inspiration = formData.inspiration
+        project.skills = formData.skills
+        project.timeEstimate = formData.timeEstimate.rawValue
+        project.difficultyLevel = formData.difficultyLevel.rawValue  // Temporarily store in priority field
+        
+        try? viewContext.save()
+        dismiss()
     }
 }

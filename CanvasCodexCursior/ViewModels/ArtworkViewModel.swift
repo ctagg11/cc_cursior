@@ -160,49 +160,32 @@ class ArtworkViewModel: ObservableObject {
         }
     }
     
-    func createProject(_ data: ProjectFormData, context: NSManagedObjectContext) throws {
-        print("DEBUG: Creating project with \(data.references.count) references")
-        let project = ProjectEntity(context: context)
+    func createProject(with formData: ProjectFormData) throws -> ProjectEntity {
+        let project = ProjectEntity(context: viewContext)
         project.id = UUID()
-        project.name = data.name
-        project.medium = data.medium
-        project.startDate = data.startDate
-        project.lastActivityDate = data.startDate
-        project.inspiration = data.inspiration
-        project.skills = data.skills
-        project.timeEstimate = data.timeEstimate.rawValue
-        project.priority = data.priority.rawValue
+        project.name = formData.name
+        project.medium = formData.medium
+        project.startDate = formData.startDate
+        project.inspiration = formData.inspiration
+        project.skills = formData.skills
+        project.timeEstimate = formData.timeEstimate.rawValue
+        project.difficultyLevel = formData.difficultyLevel.rawValue
+        project.lastActivityDate = Date()
         project.isCompleted = false
         
-        // Save references
-        for reference in data.references {
-            print("DEBUG: Attempting to save reference image")
-            guard let fileName = ImageManager.shared.saveImage(reference.image, category: .reference) else {
-                print("DEBUG: Failed to save reference image")
-                continue
-            }
-            
-            let referenceEntity = ReferenceEntity(context: context)
-            referenceEntity.id = UUID()
-            referenceEntity.imageFileName = fileName
-            referenceEntity.title = "Reference Image"
-            project.addToReferences(referenceEntity)
-            print("DEBUG: Successfully saved reference with fileName: \(fileName)")
-        }
-        
-        try context.save()
-        print("DEBUG: Project saved successfully with \(project.references?.count ?? 0) references")
-        loadProjects() // Add this line to refresh the projects list
+        try viewContext.save()
+        return project
     }
     
-    func updateProject(_ project: ProjectEntity, with data: ProjectFormData) throws {
-        project.name = data.name
-        project.medium = data.medium
-        project.startDate = data.startDate
-        project.inspiration = data.inspiration
-        project.skills = data.skills
-        project.timeEstimate = data.timeEstimate.rawValue
-        project.priority = data.priority.rawValue
+    func updateProject(_ project: ProjectEntity, with formData: ProjectFormData) throws {
+        project.name = formData.name
+        project.medium = formData.medium
+        project.startDate = formData.startDate
+        project.inspiration = formData.inspiration
+        project.skills = formData.skills
+        project.timeEstimate = formData.timeEstimate.rawValue
+        project.difficultyLevel = formData.difficultyLevel.rawValue
+        project.lastActivityDate = Date()
         
         try viewContext.save()
     }
@@ -306,20 +289,8 @@ class ArtworkViewModel: ObservableObject {
         }
     }
     
-    func createComponentTag(_ formData: ComponentTagFormData, for artwork: ArtworkEntity) throws {
-        let tag = ComponentTagEntity.create(
-            from: formData,
-            artwork: artwork,
-            context: viewContext
-        )
-        
-        try viewContext.save()
-    }
-    
-    func deleteComponentTag(_ tag: ComponentTagEntity) throws {
-        viewContext.delete(tag)
-        try viewContext.save()
-    }
+
+
 }
 
 enum ArtworkError: LocalizedError {

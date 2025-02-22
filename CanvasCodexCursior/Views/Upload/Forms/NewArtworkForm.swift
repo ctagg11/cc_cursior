@@ -479,5 +479,6 @@ enum CommonMediums: String, CaseIterable {
     case pencil = "Pencil"
     case digitalArt = "Digital Art"
     case mixedMedia = "Mixed Media"
+    case other = "Other"
     // Add more as needed
 } 

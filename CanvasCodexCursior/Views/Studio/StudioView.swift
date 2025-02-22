@@ -5,20 +5,21 @@ import CoreData
 struct StudioView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @State private var sortOption = SortOption.lastActivity
-    @State private var showActiveOnly = false
     @State private var searchText = ""
     @State private var showingCreateSheet = false
     @State private var selectedSection = Section.projects
+    @State private var projectToDelete: ProjectEntity?
+    @State private var showingDeleteConfirmation = false
     
     enum Section: String {
         case projects = "Works in Progress"
         case components = "AI Art Assistant"
     }
     
-    enum SortOption {
-        case lastActivity
-        case creationDate
-        case name
+    enum SortOption: String {
+        case lastActivity = "Last Update"
+        case creationDate = "Start Date"
+        case name = "Name"
         
         var descriptor: NSSortDescriptor {
             switch self {
@@ -67,7 +68,7 @@ struct StudioView: View {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.secondary)
                             
-                            TextField("Search works", text: $searchText)
+                            TextField("Search projects", text: $searchText)
                                 .textFieldStyle(.plain)
                             
                             if !searchText.isEmpty {
@@ -85,34 +86,31 @@ struct StudioView: View {
                         .padding(.horizontal)
                         .padding(.vertical, 8)
                         
-                        // Quick Filters
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                FilterChip(
-                                    icon: "paintpalette",
-                                    title: "All",
-                                    isSelected: !showActiveOnly
-                                ) {
-                                    showActiveOnly = false
-                                }
-                                
-                                FilterChip(
-                                    icon: "clock",
-                                    title: "Active",
-                                    isSelected: showActiveOnly
-                                ) {
-                                    showActiveOnly = true
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                        }
+                        Divider()
                     }
-                    
-                    Divider()
                 }
                 .background(Color(.systemBackground))
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selectedSection)
+                
+                // Sort Control (moved outside the white background)
+                if selectedSection == .projects {
+                    HStack {
+                        Spacer()
+                        Menu {
+                            Picker("Sort By", selection: $sortOption) {
+                                Text("Name").tag(SortOption.name)
+                                Text("Start Date").tag(SortOption.creationDate)
+                                Text("Last Update").tag(SortOption.lastActivity)
+                            }
+                        } label: {
+                            Label("Sort", systemImage: "arrow.up.arrow.down")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                }
                 
                 // Content
                 if selectedSection == .projects {
@@ -128,6 +126,7 @@ struct StudioView: View {
                         .font(.headline)
                         .foregroundColor(.primary)
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingCreateSheet = true
@@ -146,6 +145,16 @@ struct StudioView: View {
                 }
             }
         }
+        .alert("Delete Project?", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let project = projectToDelete {
+                    deleteProject(project)
+                }
+            }
+        } message: {
+            Text("This will permanently delete this project and its associated data.")
+        }
     }
     
     private var projectsContent: some View {
@@ -162,11 +171,19 @@ struct StudioView: View {
                 List {
                     ForEach(projects) { project in
                         NavigationLink(destination: ProjectDetailView(project: project)) {
-                            ProjectRow(project: project)
+                            HStack {
+                                // Status Indicator
+                                Circle()
+                                    .fill(project.isCompleted ? Color.green : Color.orange)
+                                    .frame(width: 8, height: 8)
+                                
+                                ProjectRow(project: project)
+                            }
                         }
                         .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
-                                deleteProject(project)
+                                projectToDelete = project
+                                showingDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -197,10 +214,6 @@ struct StudioView: View {
         // Combine predicates
         var predicates: [NSPredicate] = []
         
-        if showActiveOnly {
-            predicates.append(NSPredicate(format: "isCompleted == NO"))
-        }
-        
         if !searchText.isEmpty {
             predicates.append(NSPredicate(format: "name CONTAINS[cd] %@", searchText))
         }
@@ -227,27 +240,5 @@ struct StudioView: View {
     private func toggleProjectCompletion(_ project: ProjectEntity) {
         project.isCompleted.toggle()
         try? viewContext.save()
-    }
-}
-
-// Add this helper view for filter chips
-struct FilterChip: View {
-    let icon: String
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                Text(title)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(isSelected ? Color.orange.opacity(0.2) : Color(.systemGray6))
-            .foregroundColor(isSelected ? .orange : .primary)
-            .clipShape(Capsule())
-        }
     }
 } 

@@ -11,8 +11,6 @@ public struct ArtworkDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingFullscreen = false
     @State private var showingReferenceFullscreen = false
-    @State private var showingTagMode = false
-    @FetchRequest private var tags: FetchedResults<ComponentTagEntity>
     
     // Fetch request for available galleries
     @FetchRequest(
@@ -24,11 +22,6 @@ public struct ArtworkDetailView: View {
     
     public init(artwork: ArtworkEntity) {
         self.artwork = artwork
-        _tags = FetchRequest(
-            entity: ComponentTagEntity.entity(),
-            sortDescriptors: [NSSortDescriptor(keyPath: \ComponentTagEntity.createdDate, ascending: true)],
-            predicate: NSPredicate(format: "artwork == %@", artwork)
-        )
     }
     
     private var titleSection: some View {
@@ -144,7 +137,6 @@ public struct ArtworkDetailView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal)
                     }
                     
                     // References Section
@@ -155,22 +147,6 @@ public struct ArtworkDetailView: View {
                             }
                         }
                     }
-                }
-                .padding(.horizontal)
-                
-                // Add Tag Components Button
-                Button {
-                    showingTagMode = true
-                } label: {
-                    HStack {
-                        Image(systemName: "tag")
-                        Text("Tag Components")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal)
             }
@@ -222,12 +198,6 @@ public struct ArtworkDetailView: View {
             }
         } message: {
             Text("This will permanently delete this artwork and its associated data.")
-        }
-        .fullScreenCover(isPresented: $showingTagMode) {
-            if let fileName = artwork.imageFileName,
-               let uiImage = ImageManager.shared.loadImage(fileName: fileName, category: .artwork) {
-                FullScreenTagMode(image: uiImage, artwork: artwork)
-            }
         }
         .sheet(isPresented: $showingCreateGallery) {
             CreateGallerySheet { gallery in
@@ -391,151 +361,5 @@ struct ReferenceRow: View {
                 image = ImageManager.shared.loadImage(fileName: fileName, category: .reference)
             }
         }
-    }
-}
-
-// New Full Screen Tag Mode View
-struct FullScreenTagMode: View {
-    let image: UIImage
-    let artwork: ArtworkEntity
-    @Environment(\.dismiss) private var dismiss
-    @FetchRequest private var tags: FetchedResults<ComponentTagEntity>
-    @State private var showingContextualForm = false
-    @State private var tagLocation: CGPoint = .zero
-    
-    init(image: UIImage, artwork: ArtworkEntity) {
-        self.image = image
-        self.artwork = artwork
-        _tags = FetchRequest(
-            entity: ComponentTagEntity.entity(),
-            sortDescriptors: [NSSortDescriptor(keyPath: \ComponentTagEntity.createdDate, ascending: true)],
-            predicate: NSPredicate(format: "artwork == %@", artwork)
-        )
-    }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                ZStack {
-                    // Main Image
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                    
-                    // Grid Overlay - more subtle
-                    GridOverlay()
-                    
-                    // Show selection dot when form is visible
-                    if showingContextualForm {
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 8, height: 8)
-                            .position(tagLocation)
-                    }
-                    
-                    // Existing Tags
-                    ForEach(tags) { tag in
-                        TagIndicator(tag: tag)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .gesture(
-                    LongPressGesture(minimumDuration: 0.2)
-                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-                        .onChanged { value in
-                            switch value {
-                            case .second(true, let drag):
-                                guard !showingContextualForm else { return }
-                                if let drag = drag {
-                                    let location = drag.location
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    tagLocation = location
-                                    withAnimation(.spring(duration: 0.3)) {
-                                        showingContextualForm = true
-                                    }
-                                }
-                            default:
-                                break
-                            }
-                        }
-                )
-                
-                // Header Instructions - now on top
-                VStack {
-                    Text("Artwork Component Tagging")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    Text("Long hold to tag individual subjects or techniques to add to your component library")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                    Spacer()
-                }
-                .padding(.top, 40)
-                
-                // Close Button
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title)
-                                .foregroundStyle(.white)
-                                .padding()
-                        }
-                    }
-                    Spacer()
-                }
-                
-                // Legend
-                VStack {
-                    Spacer()
-                    HStack {
-                        TagLegendItem(type: .subject)
-                        TagLegendItem(type: .process)
-                    }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .padding(.bottom)
-                }
-                
-                if showingContextualForm {
-                    ContextualTagForm(
-                        isPresented: $showingContextualForm,
-                        location: tagLocation,
-                        artwork: artwork
-                    )
-                    .clipped() // Prevent form from extending outside screen
-                }
-            }
-        }
-        .preferredColorScheme(.dark)
-    }
-}
-
-struct TagLegendItem: View {
-    let type: ComponentType
-    
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(type == .subject ? .blue.opacity(0.2) : .orange.opacity(0.2))
-                .frame(width: 12, height: 12)
-                .overlay(
-                    Circle()
-                        .stroke(type == .subject ? .blue : .orange, lineWidth: 1)
-                )
-            Text(type == .subject ? "Subject" : "Process")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 8)
     }
 }

@@ -35,7 +35,6 @@ class ProjectViewModel: ObservableObject {
         project.inspiration = data.inspiration
         project.skills = data.skills
         project.timeEstimate = data.timeEstimate.rawValue
-        project.priority = data.priority.rawValue
         project.isCompleted = false
         
         // Save references
